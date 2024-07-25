@@ -30,6 +30,24 @@ const db = mysql.createConnection({
   password: 'Srinathg99',
   database: 'expensetracker'
 });
+app.post('/api/expenses/checkPremium', (req, res) => { //premium = 1 AND
+  let q = 'SELECT name,premium FROM users WHERE  email = ?';
+  console.log(req.body);
+  let e = req.body.email;
+  console.log(e);
+  db.query(q, e, (err, results) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ error: 'Database error app.js line 43' });
+    } else if (results.length === 0) {
+      return res.json({ error: 'User not a premium member.' });
+    } else {
+      console.log(results);
+      let userName = results[0].name;
+      return res.json({ name: userName , premium: results[0].premium});
+    }
+  });
+});
 
 app.post('/premium', async (req, res) => {
   console.log(req.body.premium, "app.js line 60");
