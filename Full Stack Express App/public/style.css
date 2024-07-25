@@ -1,0 +1,31 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+
+  h1 {
+    text-align: center;
+  }
+
+  #expenseForm {
+    margin-bottom: 20px;
+  }
+
+  #expensesList {
+    list-style: none;
+    padding: 0;
+  }
+
+  .expense {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .expense button {
+    margin-left: 10px;
+    cursor: pointer;
+  }
