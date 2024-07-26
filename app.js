@@ -30,6 +30,29 @@ const db = mysql.createConnection({
   password: 'Srinathg99',
   database: 'expensetracker'
 });
+
+
+app.use('/api/expenses', expenseRoutes);
+
+app.get('/api/leaderboard', (req, res) => {
+  const query = `
+    SELECT users.name, SUM(expenses.amount) AS total_expenses
+    FROM users
+    JOIN expenses ON users.id = expenses.user_id
+    GROUP BY users.id
+    ORDER BY total_expenses DESC;
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Error fetching data:', err);
+      res.status(500).send('Server error');
+      return;
+    }
+    res.json(results);
+  });
+});
+
 app.post('/api/expenses/checkPremium', (req, res) => { //premium = 1 AND
   let q = 'SELECT name,premium FROM users WHERE  email = ?';
   console.log(req.body);

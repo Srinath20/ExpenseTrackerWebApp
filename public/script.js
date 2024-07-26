@@ -1,11 +1,34 @@
 const apiUrl = 'http://localhost:3000/api/expenses';
-
-// Ensure DOM is fully loaded before running scripts
 document.addEventListener('DOMContentLoaded', () => {
     fetchExpenses();
     checkPremium();
     setupBuyPremiumButton();
 });
+/* console.log(document.getElementById('LeaderBoard'));
+document.getElementById('LeaderBoard').addEventListener('click', fetchLeaderBoard); */
+
+/* function fetchLeaderBoard() {
+  fetch('http://localhost:3000/api/leaderboard')
+    .then(response => response.json())
+    .then(data => {
+      displayLeaderBoard(data);
+    })
+    .catch(error => {
+      console.error('Error fetching leaderboard data:', error);
+    });
+}
+
+function displayLeaderBoard(data) {
+  const leaderBoardDiv = document.getElementById('leaderBoard');
+  leaderBoardDiv.innerHTML = '';
+
+  data.forEach(item => {
+    const div = document.createElement('div');
+    div.textContent = `Name - ${item.name} -- Total Expenses -- ${item.total_expenses}`;
+    leaderBoardDiv.appendChild(div);
+  });
+} */
+// window.onload = fetchLeaderBoard;
 async function checkPremium() {
     try {
         let ue = localStorage.getItem('Useremail');
@@ -15,6 +38,24 @@ async function checkPremium() {
             document.getElementById('premiumWelcome').innerText = `Welcome ${response.data.name}. You are a premium user now.`;
             let leaderBoardButton = document.createElement('button');
             leaderBoardButton.id = 'LeaderBoard';
+            /* leaderBoardButton.onclick = 'fetchLeaderBoard()'; */
+            leaderBoardButton.onclick =  function fetchLeaderBoard() {
+              fetch('http://localhost:3000/api/leaderboard')
+                .then(response => response.json())
+                .then(data => {
+                    const leaderBoardDiv = document.getElementById('leaderBoard');
+                    leaderBoardDiv.innerHTML = '';
+                    data.forEach(item => {
+                      const div = document.createElement('div');
+                      div.textContent = `Name - ${item.name} -- Total Expenses -- ${item.total_expenses}`;
+                      leaderBoardDiv.appendChild(div);
+                    })
+                })
+                .catch(error => {
+                  console.error('Error fetching leaderboard data:', error);
+                });
+            }
+
             leaderBoardButton.innerHTML = 'LeaderBoard';
             document.getElementById('premiumWelcome').appendChild(leaderBoardButton);
             removeBuyPremiumButton();
@@ -52,7 +93,25 @@ function setupBuyPremiumButton() {
         });
     }
 }
-
+function addExpense() {
+    const amount = document.getElementById('amount').value;
+    const description = document.getElementById('description').value;
+    const category = document.getElementById('category').value;
+  
+    if (!amount || !description || !category) {
+      alert('Please fill in all fields');
+      return;
+    }
+  
+    const expense = { amount, description, category };
+  
+    axios.post(apiUrl, expense)
+      .then(response => {
+        displayExpense(response.data);
+        clearForm();
+      })
+      .catch(error => console.error('Error adding expense:', error));
+  }
 function fetchExpenses() {
     axios.get(apiUrl)
         .then(response => {
@@ -140,7 +199,6 @@ function signup() {
 }
 
 async function login() {
-    console.log("Inside login function");
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const errorMessageDiv = document.getElementById('errorMessage');
