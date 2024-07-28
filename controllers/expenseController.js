@@ -27,6 +27,58 @@ exports.getAllExpenses = (req, res) => {
   });
 };
 
+
+exports.createExpense = (req, res) => {
+  const { amount, description, category } = req.body;
+  const username = req.session.userName;
+  const userId = req.session.userId;
+
+  if (!username) {
+    return res.status(401).json({ error: 'User not authenticated' });
+  }
+  db.beginTransaction(err => {
+    if (err) {
+      return res.status(500).json({ error: 'Failed to start transaction' });
+    }
+    const insertExpenseQuery = 'INSERT INTO expenses (amount, description, category, user_id) VALUES (?, ?, ?, ?)';
+    db.query(insertExpenseQuery, [amount, description, category, userId], (err, result) => {
+      if (err) {
+        return db.rollback(() => {
+          res.status(500).json({ error: 'Failed to add expense' });
+        });
+      }
+      const updateTotalExpenseQuery = `
+        UPDATE users 
+        SET totalexpense = IFNULL(totalexpense, 0) + ?
+        WHERE id = ?;
+      `;
+      db.query(updateTotalExpenseQuery, [amount, userId], (err) => {
+        if (err) {
+          return db.rollback(() => {
+            res.status(500).json({ error: 'Failed to update total expense' });
+          });
+        }
+        db.commit(err => {
+          if (err) {
+            return db.rollback(() => {
+              res.status(500).json({ error: 'Failed to commit transaction' });
+            });
+          }
+
+          res.json({ 
+            id: result.insertId, 
+            amount, 
+            description, 
+            category, 
+            user_id: username 
+          });
+        });
+      });
+    });
+  });
+};
+
+/* 
 exports.createExpense = (req, res) => {
   const { amount, description, category } = req.body;
   const username = req.session.userName;
@@ -42,7 +94,7 @@ exports.createExpense = (req, res) => {
     res.json({ id: result.insertId, amount, description, category, user_id: username });
   });
 };
-
+ */
 exports.updateExpense = (req, res) => {
   const { id } = req.params;
   const { amount, description, category } = req.body;

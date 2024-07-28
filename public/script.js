@@ -4,31 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
     checkPremium();
     setupBuyPremiumButton();
 });
-/* console.log(document.getElementById('LeaderBoard'));
-document.getElementById('LeaderBoard').addEventListener('click', fetchLeaderBoard); */
-
-/* function fetchLeaderBoard() {
-  fetch('http://localhost:3000/api/leaderboard')
-    .then(response => response.json())
-    .then(data => {
-      displayLeaderBoard(data);
-    })
-    .catch(error => {
-      console.error('Error fetching leaderboard data:', error);
-    });
-}
-
-function displayLeaderBoard(data) {
-  const leaderBoardDiv = document.getElementById('leaderBoard');
-  leaderBoardDiv.innerHTML = '';
-
-  data.forEach(item => {
-    const div = document.createElement('div');
-    div.textContent = `Name - ${item.name} -- Total Expenses -- ${item.total_expenses}`;
-    leaderBoardDiv.appendChild(div);
-  });
-} */
-// window.onload = fetchLeaderBoard;
 async function checkPremium() {
     try {
         let ue = localStorage.getItem('Useremail');
@@ -38,7 +13,6 @@ async function checkPremium() {
             document.getElementById('premiumWelcome').innerText = `Welcome ${response.data.name}. You are a premium user now.`;
             let leaderBoardButton = document.createElement('button');
             leaderBoardButton.id = 'LeaderBoard';
-            /* leaderBoardButton.onclick = 'fetchLeaderBoard()'; */
             leaderBoardButton.onclick =  function fetchLeaderBoard() {
               fetch('http://localhost:3000/api/leaderboard')
                 .then(response => response.json())
@@ -47,7 +21,7 @@ async function checkPremium() {
                     leaderBoardDiv.innerHTML = '';
                     data.forEach(item => {
                       const div = document.createElement('div');
-                      div.textContent = `Name - ${item.name} -- Total Expenses -- ${item.total_expenses}`;
+                      div.textContent = `Name - ${item.name} -- Total Expenses -- ${item.totalexpense}`;
                       leaderBoardDiv.appendChild(div);
                     })
                 })

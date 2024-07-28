@@ -35,14 +35,16 @@ const db = mysql.createConnection({
 app.use('/api/expenses', expenseRoutes);
 
 app.get('/api/leaderboard', (req, res) => {
-  const query = `
+  const query = `SELECT name,totalexpense
+    FROM users
+    ORDER BY totalexpense DESC`;
+  /* const query = `
     SELECT users.name, SUM(expenses.amount) AS total_expenses
     FROM users
     JOIN expenses ON users.id = expenses.user_id
     GROUP BY users.id
     ORDER BY total_expenses DESC;
-  `;
-
+  `; */
   db.query(query, (err, results) => {
     if (err) {
       console.error('Error fetching data:', err);
