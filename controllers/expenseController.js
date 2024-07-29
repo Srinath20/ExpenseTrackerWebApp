@@ -95,15 +95,71 @@ exports.createExpense = (req, res) => {
   });
 };
  */
+
+
 exports.updateExpense = (req, res) => {
   const { id } = req.params;
   const { amount, description, category } = req.body;
-  const sql = 'UPDATE expenses SET amount = ?, description = ?, category = ? WHERE id = ?';
-  db.query(sql, [amount, description, category, id], (err) => {
-    if (err) throw err;
-    res.json({ id, amount, description, category });
+
+  const getUserIdQuery = 'SELECT user_id FROM expenses WHERE id = ?';
+  const getTotalExpenseQuery = 'SELECT SUM(amount) AS total FROM expenses WHERE user_id = ?';
+  const updateExpenseQuery = 'UPDATE expenses SET amount = ?, description = ?, category = ? WHERE id = ?';
+  const updateUserTotalExpenseQuery = 'UPDATE users SET totalExpense = ? WHERE id = ?';
+
+  db.beginTransaction((transactionErr) => {
+    if (transactionErr) {
+      return res.status(500).json({ error: 'Transaction initiation failed' });
+    }
+
+    db.query(getUserIdQuery, [id], (err, result) => {
+      if (err) {
+        return db.rollback(() => {
+          res.status(500).json({ error: 'Failed to fetch user ID' });
+        });
+      }
+
+      const userId = result[0].user_id;
+
+      db.query(updateExpenseQuery, [amount, description, category, id], (updateErr) => {
+        if (updateErr) {
+          return db.rollback(() => {
+            res.status(500).json({ error: 'Failed to update expense' });
+          });
+        }
+
+        db.query(getTotalExpenseQuery, [userId], (sumErr, sumResult) => {
+          if (sumErr) {
+            return db.rollback(() => {
+              res.status(500).json({ error: 'Failed to calculate total expense' });
+            });
+          }
+
+          const totalExpense = sumResult[0].total;
+
+          db.query(updateUserTotalExpenseQuery, [totalExpense, userId], (updateUserErr) => {
+            if (updateUserErr) {
+              return db.rollback(() => {
+                res.status(500).json({ error: 'Failed to update user total expense' });
+              });
+            }
+
+            db.commit((commitErr) => {
+              if (commitErr) {
+                return db.rollback(() => {
+                  res.status(500).json({ error: 'Transaction commit failed' });
+                });
+              }
+
+              res.json({ id, amount, description, category, totalExpense });
+            });
+          });
+        });
+      });
+    });
   });
 };
+
+
 
 exports.deleteExpense = (req, res) => {
   const { id } = req.params;

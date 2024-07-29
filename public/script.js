@@ -197,3 +197,26 @@ async function login() {
             }
         });
 }
+
+document.getElementById('forgotPasswordButton').addEventListener('click', () => {
+    document.getElementById('forgotPasswordForm').style.display = 'block';
+  });
+  
+  document.getElementById('forgotPasswordFormElement').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const email = document.getElementById('forgotemail').value;
+    const data = JSON.stringify({ email: email });
+    axios.post('http://localhost:3000/password/forgotpassword', data,{
+        headers: {
+            'Content-Type': 'application/json'
+        }}) 
+      .then(response => {
+        console.log(response);
+        alert("Password rest link sent to your mail");
+        window.location.href = './expensetracker.html'
+      })
+      .catch(error => {
+        console.error('There was an error!', error);
+        alert('An error occurred. Please try again.');
+      });
+  });

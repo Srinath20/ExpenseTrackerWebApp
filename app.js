@@ -7,10 +7,16 @@ const expenseRoutes = require('./routes/expenseRoutes');
 const { error } = require('console');
 const app = express();
 const mysql = require('mysql');
-require('dotenv').config();
+require('dotenv').config(); 
+//smtp
+const Sib = require('sib-api-v3-sdk');
+const client = Sib.ApiClient.instance;
+const apiKey = client.authentications['api-key'];
+apiKey.apiKey = process.env.EMAIL_API_KEY;
+//end smtp
+const { name } = require('ejs');
+const htmlContent = require('./template');
 const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
-
-
 
 app.use(express.json());
 app.use(bodyParser.json());
@@ -38,13 +44,6 @@ app.get('/api/leaderboard', (req, res) => {
   const query = `SELECT name,totalexpense
     FROM users
     ORDER BY totalexpense DESC`;
-  /* const query = `
-    SELECT users.name, SUM(expenses.amount) AS total_expenses
-    FROM users
-    JOIN expenses ON users.id = expenses.user_id
-    GROUP BY users.id
-    ORDER BY total_expenses DESC;
-  `; */
   db.query(query, (err, results) => {
     if (err) {
       console.error('Error fetching data:', err);
@@ -53,7 +52,62 @@ app.get('/api/leaderboard', (req, res) => {
     }
     res.json(results);
   });
+   /* const query = `
+    SELECT users.name, SUM(expenses.amount) AS total_expenses
+    FROM users
+    JOIN expenses ON users.id = expenses.user_id
+    GROUP BY users.id
+    ORDER BY total_expenses DESC;
+  `; */
 });
+
+app.post('/password/forgotpassword', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+}
+  console.log("API_KEY:"+process.env.API_KEY);
+  const apiInstance = new Sib.TransactionalEmailsApi();
+  const sender = {
+      email: "javagalsrinath.619@gmail.com",
+      name: "Srinath",
+  };
+  const receivers = [
+      { email: email }
+  ];
+  try {
+    const sendEmail = await apiInstance.sendTransacEmail({
+      sender,
+      to:receivers,
+      subject:"Test mail for password reset",
+      textContent:"This is a test mail for password reset",
+      htmlContent,
+    })
+    return res.send(sendEmail);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: 'Failed to send email' });
+  }
+  
+  tranEmailApi.sendTransacEmail({
+      sender,
+      to: receivers,
+      subject: 'Password Reset Request',
+      textContent: `
+          This is a dummy mail for password reset for the expense tracker project.
+      `,
+  })
+  .then(response => {
+      console.log('Email sent successfully:', response);
+      res.status(200).json({ message: 'Password reset link sent to your email.' });
+  })
+  .catch(error => {
+      console.error('Error sending email:', error);
+     
+  });
+});
+
+
 
 app.post('/api/expenses/checkPremium', (req, res) => { //premium = 1 AND
   let q = 'SELECT name,premium FROM users WHERE  email = ?';
