@@ -12,7 +12,18 @@ async function checkPremium() {
         if (response.data.premium == 1 && response.data.name) {
             document.getElementById('premiumWelcome').innerText = `Welcome ${response.data.name}. You are a premium user now.`;
             let leaderBoardButton = document.createElement('button');
+            let myexpenses = document.createElement('button');
             leaderBoardButton.id = 'LeaderBoard';
+            myexpenses.id = 'myexpenses';
+            let dailyexe = document.createElement('button');
+            dailyexe.id = 'dailyexe';
+            let weeklyexe = document.createElement('button');
+            weeklyexe.id = 'weeklyexe';
+            let monthlyexe = document.createElement('button');
+            monthlyexe.id = 'monthlyexe';
+            let downloadexe = document.createElement('button');
+            downloadexe.id = 'downloadexe';
+            
             leaderBoardButton.onclick =  function fetchLeaderBoard() {
               fetch('http://localhost:3000/api/leaderboard')
                 .then(response => response.json())
@@ -32,6 +43,14 @@ async function checkPremium() {
 
             leaderBoardButton.innerHTML = 'LeaderBoard';
             document.getElementById('premiumWelcome').appendChild(leaderBoardButton);
+            myexpenses.innerHTML = 'My Expenses';
+            document.getElementById('premiumWelcome').appendChild(myexpenses);
+            dailyexe.innerHTML = 'Day wise expenses';
+            document.getElementById('premiumWelcome').appendChild(dailyexe);
+            monthlyexe.innerHTML = 'Month wise expenses';
+            document.getElementById('premiumWelcome').appendChild(monthlyexe);
+            downloadexe.innerHTML = 'Download expenses';
+            document.getElementById('premiumWelcome').appendChild(downloadexe);
             removeBuyPremiumButton();
         } else if (response.data.premium == 0 && response.data.name) {
             document.getElementById('premiumWelcome').innerText = `Welcome ${response.data.name}.`;

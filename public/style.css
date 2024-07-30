@@ -127,3 +127,42 @@ a:hover {
   text-decoration: underline;
 }
 
+#dailyexe,
+#weeklyexe,
+#monthlyexe,
+#downloadexe {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 4px;
+  background-color: #4CAF50; /* Matching the primary color */
+  color: white;
+  font-size: 1em;
+  cursor: pointer;
+  margin-top: 10px; /* Adding some spacing between buttons */
+  transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transitions */
+}
+
+#dailyexe:hover,
+#weeklyexe:hover,
+#monthlyexe:hover,
+#downloadexe:hover {
+  background-color: #45a049; /* Darker green on hover */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow on hover */
+}
+
+#dailyexe {
+  background-color: #4CAF50; /* Matching primary color */
+}
+
+#weeklyexe {
+  background-color: #4CAF50; /* Matching primary color */
+}
+
+#monthlyexe {
+  background-color: #4CAF50; /* Matching primary color */
+}
+
+#downloadexe {
+  background-color: #4CAF50; /* Matching primary color */
+}
