@@ -213,7 +213,7 @@ document.getElementById('forgotPasswordButton').addEventListener('click', () => 
       .then(response => {
         console.log(response);
         alert("Password rest link sent to your mail");
-        window.location.href = './expensetracker.html'
+        window.location.href = "http://localhost:3000/";
       })
       .catch(error => {
         console.error('There was an error!', error);

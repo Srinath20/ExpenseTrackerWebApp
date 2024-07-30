@@ -5,8 +5,12 @@ const path = require('path');
 const session = require('express-session');
 const expenseRoutes = require('./routes/expenseRoutes');
 const { error } = require('console');
+const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcrypt');
+const nodemailer = require('nodemailer');
 const app = express();
 const mysql = require('mysql');
+//const mysql = require('mysql2');
 require('dotenv').config(); 
 //smtp
 const Sib = require('sib-api-v3-sdk');
@@ -19,6 +23,7 @@ const htmlContent = require('./template');
 const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 
 app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -52,62 +57,135 @@ app.get('/api/leaderboard', (req, res) => {
     }
     res.json(results);
   });
-   /* const query = `
-    SELECT users.name, SUM(expenses.amount) AS total_expenses
-    FROM users
-    JOIN expenses ON users.id = expenses.user_id
-    GROUP BY users.id
-    ORDER BY total_expenses DESC;
-  `; */
 });
 
 app.post('/password/forgotpassword', async (req, res) => {
   const { email } = req.body;
   if (!email) {
-    return res.status(400).json({ error: 'Email is required' });
-}
-  console.log("API_KEY:"+process.env.API_KEY);
-  const apiInstance = new Sib.TransactionalEmailsApi();
-  const sender = {
-      email: "javagalsrinath.619@gmail.com",
-      name: "Srinath",
-  };
-  const receivers = [
-      { email: email }
-  ];
-  try {
-    const sendEmail = await apiInstance.sendTransacEmail({
-      sender,
-      to:receivers,
-      subject:"Test mail for password reset",
-      textContent:"This is a test mail for password reset",
-      htmlContent,
-    })
-    return res.send(sendEmail);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: 'Failed to send email' });
+      return res.status(400).json({ error: 'Email is required' });
   }
-  
-  tranEmailApi.sendTransacEmail({
-      sender,
-      to: receivers,
-      subject: 'Password Reset Request',
-      textContent: `
-          This is a dummy mail for password reset for the expense tracker project.
-      `,
-  })
-  .then(response => {
-      console.log('Email sent successfully:', response);
-      res.status(200).json({ message: 'Password reset link sent to your email.' });
-  })
-  .catch(error => {
-      console.error('Error sending email:', error);
-     
+
+  const userQuery = 'SELECT id FROM users WHERE email = ?';
+  db.query(userQuery, [email], (error, results) => {
+      if (error) {
+          console.error('Error finding user:', error);
+          return res.status(500).json({ error: 'Internal server error' });
+      }
+
+      if (results.length === 0) {
+          return res.status(404).json({ error: 'User not found' });
+      }
+
+      const userId = results[0].id;
+      const requestId = uuidv4();
+      const insertQuery = 'INSERT INTO forgotpasswordrequests (id, userId, isactive) VALUES (?, ?, ?)';
+
+      db.query(insertQuery, [requestId, userId, true], async (error) => {
+          if (error) {
+              console.error('Error creating request:', error);
+              return res.status(500).json({ error: 'Internal server error' });
+          }
+
+          const resetUrl = `http://localhost:3000/password/resetpassword/${requestId}`;
+
+          const apiInstance = new Sib.TransactionalEmailsApi();
+          const sender = {
+              email: "javagalsrinath.619@gmail.com",
+              name: "Srinath",
+          };
+          const receivers = [
+              { email: email }
+          ];
+          const htmlContent = `<p>You requested a password reset. Click the link to reset your password: <a href="${resetUrl}">${resetUrl}</a></p>`;
+          const textContent = `You requested a password reset. Click the link to reset your password: ${resetUrl}`;
+
+          try {
+              const sendEmail = await apiInstance.sendTransacEmail({
+                  sender,
+                  to: receivers,
+                  subject: "Password Reset Request",
+                  textContent: textContent,
+                  htmlContent: htmlContent,
+              });
+              console.log('Email sent successfully:', sendEmail);
+              return res.status(200).json({ message: 'Password reset link sent to your email.' });
+          } catch (error) {
+              console.error('Error sending email:', error);
+              return res.status(500).json({ error: 'Failed to send email' });
+          }
+      });
   });
 });
 
+app.get('/password/resetpassword/:requestId', (req, res) => {
+  const { requestId } = req.params;
 
+  const query = 'SELECT * FROM ForgotPasswordRequests WHERE id = ? AND isactive = TRUE';
+  db.query(query, [requestId], (error, results) => {
+      if (error) {
+          console.error('Error querying reset request:', error);
+          return res.status(500).send('Internal Server Error');
+      }
+
+      if (results.length === 0) {
+          return res.status(404).send('Invalid or expired reset link');
+      }
+
+      res.send(`
+          <form action="/password/resetpassword/${requestId}" method="POST">
+             New Password: <input type="password" id="newPassword" name="newPassword" required>
+              <button type="submit">Reset Password</button>
+          </form>
+      `);
+  });
+});
+
+app.post('/password/resetpassword/:requestId', (req, res) => {
+  const { requestId } = req.params;
+  const { newPassword } = req.body;
+  if (!newPassword) {
+      return res.status(400).send('New password is required');
+  }
+
+  const selectQuery = 'SELECT userId FROM ForgotPasswordRequests WHERE id = ? AND isactive = TRUE';
+  db.query(selectQuery, [requestId], (error, results) => {
+      if (error) {
+          console.error('Error querying reset request:', error);
+          return res.status(500).send('Internal Server Error');
+      }
+
+      if (results.length === 0) {
+          return res.status(404).send('Invalid or expired reset link');
+      }
+
+      const userId = results[0].userId;
+
+      bcrypt.hash(newPassword, 10, (err, hashedPassword) => {
+          if (err) {
+              console.error('Error hashing password:', err);
+              return res.status(500).send('Internal Server Error');
+          }
+
+          const updateQuery = 'UPDATE users SET password = ? WHERE id = ?';
+          db.query(updateQuery, [hashedPassword, userId], (error) => {
+              if (error) {
+                  console.error('Error updating password:', error);
+                  return res.status(500).send('Internal Server Error');
+              }
+
+              const deactivateQuery = 'UPDATE ForgotPasswordRequests SET isactive = FALSE WHERE id = ?';
+              db.query(deactivateQuery, [requestId], (error) => {
+                  if (error) {
+                      console.error('Error deactivating reset request:', error);
+                      return res.status(500).send('Internal Server Error');
+                  }
+
+                  res.send('Password has been reset successfully');
+              });
+          });
+      });
+  });
+});
 
 app.post('/api/expenses/checkPremium', (req, res) => { //premium = 1 AND
   let q = 'SELECT name,premium FROM users WHERE  email = ?';
