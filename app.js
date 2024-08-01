@@ -1,3 +1,5 @@
+//Any network call should be in service folder like db,s3 and api callss
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -10,6 +12,7 @@ const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 const app = express();
 const mysql = require('mysql');
+const AWS = require('aws-sdk');
 //const mysql = require('mysql2');
 require('dotenv').config(); 
 //smtp
@@ -21,6 +24,10 @@ apiKey.apiKey = process.env.EMAIL_API_KEY;
 const { name } = require('ejs');
 const htmlContent = require('./template');
 const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
+const BUCKET_NAME = process.env.BUCKET_NAME;
+const IAM_USER_KEY= process.env.IAM_USER_KEY
+const IAM_USER_SECRET = process.env.IAM_USER_SECRET;
+
 
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -44,6 +51,86 @@ const db = mysql.createConnection({
 
 
 app.use('/api/expenses', expenseRoutes);
+
+function uploadToS3(data, filename) {
+      const s3Bucket = new AWS.S3({
+      accessKeyId: IAM_USER_KEY,
+      secretAccessKey: IAM_USER_SECRET
+      });
+
+      const params = {
+      Bucket: BUCKET_NAME,
+      Key: filename,
+      Body: data,
+      ACL: 'public-read'
+      };
+      return new Promise((resolve, reject) => {
+      s3Bucket.upload(params, (err, s3response) => {
+          if (err) {
+              console.log("Something went wrong", err);
+              reject(err);
+          } else {
+              console.log('Success', s3response.Location);
+              resolve(s3response.Location);
+          }
+      });
+  });
+}
+
+
+app.get('/api/user/download', async (req, res) => {
+  let u = req.session.userId;
+  if (!u) {
+      return res.status(400).json({ error: 'User has to sign in' });
+  }
+
+  let q = `SELECT * FROM expenses WHERE user_id = ?`;
+  db.query(q, [u], async (err, resu) => {
+      if (err) {
+          console.error('Error fetching data:', err);
+          res.status(500).send('Server error');
+          return;
+      }
+
+      try {
+          const stringifiedExpenses = JSON.stringify(resu);
+          const filename = `Expense${u}/${new Date()}.txt`;
+          const fileurl = await uploadToS3(stringifiedExpenses, filename);
+          const insertQuery = `INSERT INTO downloadedFiles (userid, url, downloaded_at) VALUES (?, ?, NOW())`;
+            db.query(insertQuery, [u, fileurl], (insertErr) => {
+                if (insertErr) {
+                    console.error('Error inserting data:', insertErr);
+                    res.status(500).send('Server error');
+                    return;
+                }
+                res.status(200).json({ userId: u, fileurl, success: true });
+            });
+      } catch (uploadErr) {
+          console.error('Error uploading to S3:', uploadErr);
+          res.status(500).send('Server error');
+      }
+  });
+});
+
+app.get('/api/user/download-history', (req, res) => {
+  let u = req.session.userId;
+  if (!u) {
+      return res.status(400).json({ error: 'User has to sign in' });
+  }
+
+  const query = `SELECT url, downloaded_at FROM downloadedFiles WHERE userid = ? ORDER BY downloaded_at DESC`;
+  db.query(query, [u], (err, results) => {
+      if (err) {
+          console.error('Error fetching download history:', err);
+          res.status(500).send('Server error');
+          return;
+      }
+
+      res.status(200).json(results);
+  });
+});
+
+
 
 app.get('/api/leaderboard', (req, res) => {
   const query = `SELECT name,totalexpense

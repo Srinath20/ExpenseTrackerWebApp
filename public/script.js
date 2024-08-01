@@ -3,8 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchExpenses();
     checkPremium();
     setupBuyPremiumButton();
+    fetchDownloadHistory();
 });
-async function checkPremium() {
+/* async function checkPremium() {
     try {
         let ue = localStorage.getItem('Useremail');
         let response = await axios.post(`${apiUrl}/checkPremium`, { email: ue });
@@ -12,18 +13,33 @@ async function checkPremium() {
         if (response.data.premium == 1 && response.data.name) {
             document.getElementById('premiumWelcome').innerText = `Welcome ${response.data.name}. You are a premium user now.`;
             let leaderBoardButton = document.createElement('button');
-            let myexpenses = document.createElement('button');
             leaderBoardButton.id = 'LeaderBoard';
-            myexpenses.id = 'myexpenses';
-            let dailyexe = document.createElement('button');
-            dailyexe.id = 'dailyexe';
-            let weeklyexe = document.createElement('button');
-            weeklyexe.id = 'weeklyexe';
-            let monthlyexe = document.createElement('button');
-            monthlyexe.id = 'monthlyexe';
             let downloadexe = document.createElement('button');
             downloadexe.id = 'downloadexe';
-            
+            downloadexe.onclick =  async function fetchFile(){
+                try {
+                    const response = await fetch('http://localhost:3000/api/user/download');
+                    if (response.status === 200) {
+                        const data = await response.json();
+                        var a = document.createElement("a");
+                        console.log(data.fileurl, "line 23 in script");
+                        console.log(data, "line 24 scriptjs");
+                        a.href = data.fileurl;
+                        a.download = 'myexpense.csv';
+                        a.click();
+                        const showDownloads = document.getElementById('showDownloads');
+                        const downloadInfo = document.createElement('div');
+                        downloadInfo.innerHTML = `User ID: ${data.userId} <br> File URL: <a href="${data.fileurl}" target="_blank">${data.fileurl}</a>`;
+                        showDownloads.appendChild(downloadInfo);
+                    } else {
+                                throw new Error('Failed to download file');
+                        }
+                    }
+                    catch (error) {
+                        console.error('Error:', error);
+                    }
+                } 
+            }
             leaderBoardButton.onclick =  function fetchLeaderBoard() {
               fetch('http://localhost:3000/api/leaderboard')
                 .then(response => response.json())
@@ -40,17 +56,10 @@ async function checkPremium() {
                   console.error('Error fetching leaderboard data:', error);
                 });
             }
-
+            downloadexe.innerHTML = 'Download expense';
+            document.getElementById('premiumWelcome').appendChild(downloadexe);
             leaderBoardButton.innerHTML = 'LeaderBoard';
             document.getElementById('premiumWelcome').appendChild(leaderBoardButton);
-            myexpenses.innerHTML = 'My Expenses';
-            document.getElementById('premiumWelcome').appendChild(myexpenses);
-            dailyexe.innerHTML = 'Day wise expenses';
-            document.getElementById('premiumWelcome').appendChild(dailyexe);
-            monthlyexe.innerHTML = 'Month wise expenses';
-            document.getElementById('premiumWelcome').appendChild(monthlyexe);
-            downloadexe.innerHTML = 'Download expenses';
-            document.getElementById('premiumWelcome').appendChild(downloadexe);
             removeBuyPremiumButton();
         } else if (response.data.premium == 0 && response.data.name) {
             document.getElementById('premiumWelcome').innerText = `Welcome ${response.data.name}.`;
@@ -58,7 +67,98 @@ async function checkPremium() {
     } catch (error) {
         console.log('Error checking premium status:', error);
     }
-}
+} */
+    async function checkPremium() {
+        try {
+            let ue = localStorage.getItem('Useremail');
+            let response = await axios.post(`${apiUrl}/checkPremium`, { email: ue });
+    
+            if (response.data.premium == 1 && response.data.name) {
+                document.getElementById('premiumWelcome').innerText = `Welcome ${response.data.name}. You are a premium user now.`;
+    
+                let leaderBoardButton = document.createElement('button');
+                leaderBoardButton.id = 'LeaderBoard';
+                leaderBoardButton.innerHTML = 'LeaderBoard';
+    
+                let downloadexe = document.createElement('button');
+                downloadexe.id = 'downloadexe';
+                downloadexe.innerHTML = 'Download expense';
+    
+                downloadexe.onclick = async function fetchFile() {
+                    try {
+                        const response = await fetch('http://localhost:3000/api/user/download');
+                        if (response.status === 200) {
+                            const data = await response.json();
+                            var a = document.createElement("a");
+                            console.log(data.fileurl, "line 23 in script");
+                            console.log(data, "line 24 scriptjs");
+                            a.href = data.fileurl;
+                            a.download = 'myexpense.csv';
+                            a.click();
+                            
+                            const showDownloads = document.getElementById('showDownloads');
+                            const downloadInfo = document.createElement('div');
+                            downloadInfo.innerHTML = `User ID: ${data.userId} <br> File URL: <a href="${data.fileurl}" target="_blank">${data.fileurl}</a>`;
+                            showDownloads.appendChild(downloadInfo);
+                            fetchDownloadHistory();
+                        } else {
+                            throw new Error('Failed to download file');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                }
+    
+                leaderBoardButton.onclick = function fetchLeaderBoard() {
+                    fetch('http://localhost:3000/api/leaderboard')
+                        .then(response => response.json())
+                        .then(data => {
+                            const leaderBoardDiv = document.getElementById('leaderBoard');
+                            leaderBoardDiv.innerHTML = '';
+                            data.forEach(item => {
+                                const div = document.createElement('div');
+                                div.textContent = `Name - ${item.name} -- Total Expenses -- ${item.totalexpense}`;
+                                leaderBoardDiv.appendChild(div);
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error fetching leaderboard data:', error);
+                        });
+                }
+    
+                document.getElementById('premiumWelcome').appendChild(downloadexe);
+                document.getElementById('premiumWelcome').appendChild(leaderBoardButton);
+                removeBuyPremiumButton();
+            } else if (response.data.premium == 0 && response.data.name) {
+                document.getElementById('premiumWelcome').innerText = `Welcome ${response.data.name}.`;
+            }
+        } catch (error) {
+            console.log('Error checking premium status:', error);
+        }
+    }
+    
+    async function fetchDownloadHistory() {
+        try {
+            const response = await fetch('http://localhost:3000/api/user/download-history');
+            if (response.status === 200) {
+                const data = await response.json();
+                const showDownloads = document.getElementById('showDownloads');
+                showDownloads.innerHTML = '';
+                data.forEach(item => {
+                    const downloadInfo = document.createElement('div');
+                    downloadInfo.innerHTML = `File URL: <a href="${item.url}" target="_blank">${item.url}</a> <br> Downloaded At: ${new Date(item.downloaded_at).toLocaleString()}`;
+                    showDownloads.appendChild(downloadInfo);
+                });
+            } else {
+                throw new Error('Failed to fetch download history');
+            }
+        } catch (error) {
+            console.error('Error fetching download history:', error);
+        }
+    }
+    
+    checkPremium();
+    
 function removeBuyPremiumButton() {
     let buyPremiumButton = document.getElementById('rzp-button1');
     if (buyPremiumButton) {
