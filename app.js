@@ -115,20 +115,35 @@ app.get('/api/user/download', async (req, res) => {
 app.get('/api/user/download-history', (req, res) => {
   let u = req.session.userId;
   if (!u) {
-      return res.status(400).json({ error: 'User has to sign in' });
+    return res.status(400).json({ error: 'User has to sign in' });
   }
 
-  const query = `SELECT url, downloaded_at FROM downloadedFiles WHERE userid = ? ORDER BY downloaded_at DESC`;
-  db.query(query, [u], (err, results) => {
+  const page = parseInt(req.query.page) || 1;  // Current page number, default is 1
+  const limit = parseInt(req.query.limit) || 10; // Number of items per page, default is 10
+  const offset = (page - 1) * limit; // Calculate offset for SQL query
+
+  const countQuery = `SELECT COUNT(*) AS count FROM downloadedFiles WHERE userid = ?`;
+  const dataQuery = `SELECT url, downloaded_at FROM downloadedFiles WHERE userid = ? ORDER BY downloaded_at DESC LIMIT ? OFFSET ?`;
+
+  db.query(countQuery, [u], (err, countResults) => {
+    if (err) {
+      console.error('Error fetching download history count:', err);
+      return res.status(500).send('Server error');
+    }
+
+    const totalCount = countResults[0].count;
+
+    db.query(dataQuery, [u, limit, offset], (err, results) => {
       if (err) {
-          console.error('Error fetching download history:', err);
-          res.status(500).send('Server error');
-          return;
+        console.error('Error fetching download history:', err);
+        return res.status(500).send('Server error');
       }
 
-      res.status(200).json(results);
+      res.status(200).json({ totalCount, data: results });
+    });
   });
 });
+
 
 
 
