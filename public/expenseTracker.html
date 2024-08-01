@@ -33,6 +33,15 @@
     </div>
     <button type="button" id="rzp-button1">Buy Premium</button>
     <button type="button" onclick="addExpense()">Add Expense</button>
+    <div>
+      <label for="rowsPerPage">Rows per page: </label>
+      <select id="rowsPerPage" onchange="updateRowsPerPage()">
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+      </select>
+  </div>
     <div id="pagination-controls"></div>
     <div id="showDownloads"></div>
     <div id="leaderBoard"></div>

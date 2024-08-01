@@ -1,6 +1,7 @@
-let currentPage = 1;
-const limit = 10;
 const apiUrl = 'http://localhost:3000/api/expenses';
+let currentPage = 1;
+let limit = parseInt(localStorage.getItem('rowsPerPage')) || 10;
+document.getElementById('rowsPerPage').value = limit;
 document.addEventListener('DOMContentLoaded', () => {
     fetchExpenses();
     checkPremium();
@@ -117,6 +118,14 @@ function changePage(page) {
     currentPage = page;
     fetchDownloadHistory(currentPage);
 }
+
+function updateRowsPerPage() {
+    limit = parseInt(document.getElementById('rowsPerPage').value);
+    localStorage.setItem('rowsPerPage', limit);
+    currentPage = 1;
+    fetchDownloadHistory(currentPage);
+}
+
 fetchDownloadHistory(currentPage);
     
     checkPremium();
@@ -263,7 +272,7 @@ async function login() {
         return;
     }
 
-    await axios.post(`${apiUrl}/user/login`, { email, password })
+    await axios.post(`http://localhost:3000/api/expenses/user/login`, { email, password })
         .then((res) => {
             let useremail = res.data.email;
             localStorage.setItem('Useremail', useremail);

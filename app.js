@@ -118,9 +118,9 @@ app.get('/api/user/download-history', (req, res) => {
     return res.status(400).json({ error: 'User has to sign in' });
   }
 
-  const page = parseInt(req.query.page) || 1;  // Current page number, default is 1
-  const limit = parseInt(req.query.limit) || 10; // Number of items per page, default is 10
-  const offset = (page - 1) * limit; // Calculate offset for SQL query
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10; 
+  const offset = (page - 1) * limit; 
 
   const countQuery = `SELECT COUNT(*) AS count FROM downloadedFiles WHERE userid = ?`;
   const dataQuery = `SELECT url, downloaded_at FROM downloadedFiles WHERE userid = ? ORDER BY downloaded_at DESC LIMIT ? OFFSET ?`;
