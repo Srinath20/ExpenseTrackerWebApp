@@ -1,20 +1,20 @@
 //Any network call should be in service folder like db,s3 and api callss
-
+const fs = require('fs');
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
 const session = require('express-session');
 const expenseRoutes = require('./routes/expenseRoutes');
-const { error } = require('console');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
-const nodemailer = require('nodemailer');
 const app = express();
 const mysql = require('mysql');
 const AWS = require('aws-sdk');
-//const mysql = require('mysql2');
 require('dotenv').config(); 
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
 //smtp
 const Sib = require('sib-api-v3-sdk');
 const client = Sib.ApiClient.instance;
@@ -27,6 +27,7 @@ const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const IAM_USER_KEY= process.env.IAM_USER_KEY
 const IAM_USER_SECRET = process.env.IAM_USER_SECRET;
+const PORT = process.env.PORT
 
 
 app.use(express.json());
@@ -34,23 +35,20 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
-
+const db = require('./db');
 app.use(session({
   secret: 'your_secret_key',
   resave: false,
   saveUninitialized: true,
 }));
 app.use('/api/expenses', expenseRoutes);
-
-const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'Srinathg99',
-  database: 'expensetracker'
-});
-
-
-app.use('/api/expenses', expenseRoutes);
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname, 'Logs', 'access.log'),
+  {flags:'a'}
+)
+app.use(helmet());
+app.use(compression());
+app.use(morgan('combined',{stream : accessLogStream}));
 
 function uploadToS3(data, filename) {
       const s3Bucket = new AWS.S3({
@@ -291,9 +289,7 @@ app.post('/password/resetpassword/:requestId', (req, res) => {
 
 app.post('/api/expenses/checkPremium', (req, res) => { //premium = 1 AND
   let q = 'SELECT name,premium FROM users WHERE  email = ?';
-  console.log(req.body);
   let e = req.body.email;
-  console.log(e);
   db.query(q, e, (err, results) => {
     if (err) {
       console.log(err);
@@ -301,7 +297,6 @@ app.post('/api/expenses/checkPremium', (req, res) => { //premium = 1 AND
     } else if (results.length === 0) {
       return res.json({ error: 'User not a premium member.' });
     } else {
-      console.log(results);
       let userName = results[0].name;
       return res.json({ name: userName , premium: results[0].premium});
     }
@@ -309,14 +304,11 @@ app.post('/api/expenses/checkPremium', (req, res) => { //premium = 1 AND
 });
 
 app.post('/premium', async (req, res) => {
-  console.log(req.body.premium, "app.js line 60");
-  console.log("app.js line 64");
   if (req.body.premium === 1) {
     const user = req.session.userId;
     if (!user) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
-    console.log(user, "app.js line 61");
     let q = `UPDATE users SET premium = 1 WHERE id = ?`;
     db.query(q, [user], (err, results) => {
       if (err) {
@@ -326,7 +318,6 @@ app.post('/premium', async (req, res) => {
       if (results.affectedRows === 0) {
         return res.status(404).json({ error: 'User not found' });
       } else {
-        console.log(req.session, "app.js line 69");
         res.json({ message: 'Premium status updated successfully'});
       }
     });
@@ -353,23 +344,20 @@ app.post('/purchase/premium',async (req,res)=>{
           quantity:item.quantity
         }
       }),
-      success_url:`${process.env.SERVER_url}/success.html`,
-      cancel_url:`${process.env.SERVER_url}/cancel.html`
+      success_url: `${process.env.SERVER_url}/success.html?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.SERVER_url}/cancel.html`
     })
     res.json({url:sess.url});
   } catch (e) {
-    console.log(e)
     res.json(e);
   }
 })
 app.post('/premium', async (req, res) => {
-  console.log(req.body.premium, "app.js line 60");
   if (req.body.premium === 1) {
     const user = req.session.userId;
     if (!user) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
-    console.log(user, "app.js line 61");
     let q = `UPDATE users SET premium = 1 WHERE id = ?`;
     db.query(q, [user], (err, results) => {
       if (err) {
@@ -379,7 +367,6 @@ app.post('/premium', async (req, res) => {
       if (results.affectedRows === 0) {
         return res.status(404).json({ error: 'User not found' });
       } else {
-        console.log(req.session, "app.js line 69");
         res.json({ message: 'Premium status updated successfully' });
       }
     });
@@ -389,18 +376,7 @@ app.post('/premium', async (req, res) => {
 });
 
 
-
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
+app.listen(PORT, () => {
+  console.log(`Server running in ${PORT}`);
 });
 
-
-/* app.use((req, res, next) => {
-  if (req.session && req.session.userName) {
-    console.log("locals: ",res.locals)
-    res.locals.welcomeMessage = `<h1 style="text-align: center; font-weight: bold;">Welcome ${req.session.userName}</h1>`;
-  } else {
-    res.locals.welcomeMessage = '';
-  }
-  next();
-}); */

@@ -1,7 +1,6 @@
 const apiUrl = 'http://localhost:3000/api/expenses';
 let currentPage = 1;
-let limit = parseInt(localStorage.getItem('rowsPerPage')) || 10;
-document.getElementById('rowsPerPage').value = limit;
+let limit = 10;
 document.addEventListener('DOMContentLoaded', () => {
     fetchExpenses();
     checkPremium();
@@ -30,8 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (response.status === 200) {
                             const data = await response.json();
                             var a = document.createElement("a");
-                            console.log(data.fileurl, "line 23 in script");
-                            console.log(data, "line 24 scriptjs");
                             a.href = data.fileurl;
                             a.download = 'myexpense.csv';
                             a.click();
@@ -289,6 +286,7 @@ async function login() {
 }
 
 document.getElementById('forgotPasswordButton').addEventListener('click', () => {
+    console.log("Forgot password!!");
     document.getElementById('forgotPasswordForm').style.display = 'block';
   });
   
@@ -301,7 +299,6 @@ document.getElementById('forgotPasswordButton').addEventListener('click', () => 
             'Content-Type': 'application/json'
         }}) 
       .then(response => {
-        console.log(response);
         alert("Password rest link sent to your mail");
         window.location.href = "http://localhost:3000/";
       })

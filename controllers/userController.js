@@ -1,16 +1,6 @@
 const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
-const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'Srinathg99',
-  database: 'expensetracker'
-});
-
-db.connect(err => {
-  if (err) throw err;
-  console.log('Connected to the database from userController.');
-});
+const db = require('../db');
 
 exports.signupUser = async (req, res) => {
   const { name, email, password } = req.body;
@@ -39,7 +29,6 @@ exports.signupUser = async (req, res) => {
 
 exports.loginUser = (req, res) => {
   const { email, password } = req.body;
- // console.log(email+"  "+ password);
   const sql = 'SELECT * FROM users WHERE email = ?';
   
   db.query(sql, [email], async (err, results) => {
@@ -47,16 +36,11 @@ exports.loginUser = (req, res) => {
     if (results.length === 0) {
       return res.status(404).json({ error: 'User not found.' });
     } else {
-      console.log(results,"User controller line 50");
       const user = results[0];
       const match = await bcrypt.compare(password, user.password);
-
-      console.log(req.session," userController 57");
       if (match) {
         req.session.userName = user.name;
         req.session.userId = user.id;
-
-      console.log(req.session,"usercontroller line 62");
  
 
         res.json({ id: user.id, name: user.name, email: user.email }); 

@@ -1,25 +1,12 @@
 const mysql = require('mysql2');
-
-const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'Srinathg99',
-  database: 'expensetracker'
-});
-
-db.connect(err => {
-  if (err) throw err;
-  console.log('Connected to the database from expenseController.');
-});
+const db = require('../db');
 
 exports.getAllExpenses = (req, res) => {
   const username = req.session.userName;
-  console.log(" expenseController line 17");
   if (!username) {
     return res.status(401).json({ error: 'User not authenticated' });
   }
   const userId = req.session.userId;
-  console.log(" expenseController line 22");
   const sql = 'SELECT * FROM expenses WHERE user_id = ?';
   db.query(sql, [userId], (err, results) => {
     if (err) throw err;
@@ -77,24 +64,6 @@ exports.createExpense = (req, res) => {
     });
   });
 };
-
-/* 
-exports.createExpense = (req, res) => {
-  const { amount, description, category } = req.body;
-  const username = req.session.userName;
-  const userId = req.session.userId;
-
-  if (!username) {
-    return res.status(401).json({ error: 'User not authenticated' });
-  }
-
-  const sql = 'INSERT INTO expenses (amount, description, category, user_id) VALUES (?, ?, ?, ?)';
-  db.query(sql, [amount, description, category, userId], (err, result) => {
-    if (err) throw err;
-    res.json({ id: result.insertId, amount, description, category, user_id: username });
-  });
-};
- */
 
 
 exports.updateExpense = (req, res) => {

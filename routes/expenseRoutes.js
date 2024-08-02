@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const expenseController = require('../controllers/expenseController');
 const userController = require('../controllers/userController');
-const purchaseController = require('../controllers/purchaseController');
 
 router.get('/', expenseController.getAllExpenses);
 router.post('/', expenseController.createExpense);
