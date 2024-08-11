@@ -75,7 +75,6 @@ function uploadToS3(data, filename) {
   });
 }
 
-
 app.get('/api/user/download', async (req, res) => {
   let u = req.session.userId;
   if (!u) {
@@ -186,7 +185,7 @@ app.post('/password/forgotpassword', async (req, res) => {
               return res.status(500).json({ error: 'Internal server error' });
           }
 
-          const resetUrl = `http://localhost:3000/password/resetpassword/${requestId}`;
+          const resetUrl = `http://52.90.231.173:3000/password/resetpassword/${requestId}`;
 
           const apiInstance = new Sib.TransactionalEmailsApi();
           const sender = {
@@ -287,7 +286,7 @@ app.post('/password/resetpassword/:requestId', (req, res) => {
   });
 });
 
-app.post('/api/expenses/checkPremium', (req, res) => { //premium = 1 AND
+app.post('/api/expenses/checkPremium', (req, res) => { 
   let q = 'SELECT name,premium FROM users WHERE  email = ?';
   let e = req.body.email;
   db.query(q, e, (err, results) => {
@@ -332,7 +331,6 @@ app.post('/purchase/premium',async (req,res)=>{
       payment_method_types:['card'],
       mode:'payment',
       line_items:req.body.items.map(item =>{
-        // const storeItem = items[item]
         return{
           price_data:{
             currency:'INR',
@@ -374,6 +372,11 @@ app.post('/premium', async (req, res) => {
     res.json({ message: "Payment failed" });
   }
 });
+
+app.use((req,res)=>{
+  console.log('urll',req.url);
+  res.sendFile(path.join(__dirname,`public/${req.url}`));
+})
 
 
 app.listen(PORT, () => {

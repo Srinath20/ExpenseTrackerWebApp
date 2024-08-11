@@ -1,4 +1,4 @@
-const apiUrl = 'http://localhost:3000/api/expenses';
+const apiUrl = 'http://52.90.231.173:3000/api/expenses';
 
 document.addEventListener('DOMContentLoaded', fetchExpenses);
 

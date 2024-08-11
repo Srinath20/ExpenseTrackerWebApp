@@ -1,4 +1,4 @@
-const apiUrl = 'http://localhost:3000/api/expenses';
+const apiUrl = 'http://52.90.231.173:3000/api/expenses';
 let currentPage = 1;
 let limit = 10;
 document.addEventListener('DOMContentLoaded', () => {
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
                 downloadexe.onclick = async function fetchFile() {
                     try {
-                        const response = await fetch('http://localhost:3000/api/user/download');
+                        const response = await fetch('http://52.90.231.173:3000/api/user/download');
                         if (response.status === 200) {
                             const data = await response.json();
                             var a = document.createElement("a");
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
     
                 leaderBoardButton.onclick = function fetchLeaderBoard() {
-                    fetch('http://localhost:3000/api/leaderboard')
+                    fetch('http://52.90.231.173:3000/api/leaderboard')
                         .then(response => response.json())
                         .then(data => {
                             const leaderBoardDiv = document.getElementById('leaderBoard');
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function fetchDownloadHistory(page = 1) {
         try {
-            const response = await fetch(`http://localhost:3000/api/user/download-history?page=${page}&limit=${limit}`);
+            const response = await fetch(`http://52.90.231.173:3000/api/user/download-history?page=${page}&limit=${limit}`);
             if (response.status === 200) {
                 const result = await response.json();
                 const data = result.data;
@@ -137,7 +137,7 @@ function setupBuyPremiumButton() {
     const buyPremiumButton = document.getElementById('rzp-button1');
     if (buyPremiumButton) {
         buyPremiumButton.addEventListener("click", () => {
-            fetch('http://localhost:3000/purchase/premium', {
+            fetch('http://52.90.231.173:3000/purchase/premium', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -243,7 +243,7 @@ function signup() {
     }
 
     const user = { name, email, password };
-
+    //console.log(user);
     axios.post(`${apiUrl}/user/signup`, user)
         .then(response => {
             alert('Signup successful!');
@@ -269,7 +269,7 @@ async function login() {
         return;
     }
 
-    await axios.post(`http://localhost:3000/api/expenses/user/login`, { email, password })
+    await axios.post(`http://52.90.231.173:3000/api/expenses/user/login`, { email, password })
         .then((res) => {
             let useremail = res.data.email;
             localStorage.setItem('Useremail', useremail);
@@ -294,13 +294,13 @@ document.getElementById('forgotPasswordButton').addEventListener('click', () => 
     event.preventDefault();
     const email = document.getElementById('forgotemail').value;
     const data = JSON.stringify({ email: email });
-    axios.post('http://localhost:3000/password/forgotpassword', data,{
+    axios.post('http://52.90.231.173:3000/password/forgotpassword', data,{
         headers: {
             'Content-Type': 'application/json'
         }}) 
       .then(response => {
         alert("Password rest link sent to your mail");
-        window.location.href = "http://localhost:3000/";
+        window.location.href = "http://52.90.231.173:3000/";
       })
       .catch(error => {
         console.error('There was an error!', error);

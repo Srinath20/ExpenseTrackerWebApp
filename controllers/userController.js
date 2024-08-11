@@ -41,10 +41,7 @@ exports.loginUser = (req, res) => {
       if (match) {
         req.session.userName = user.name;
         req.session.userId = user.id;
- 
-
-        res.json({ id: user.id, name: user.name, email: user.email }); 
-        
+        res.json({ id: user.id, name: user.name, email: user.email });         
      } else res.status(400).json({ error: 'User not authorized' });
       
     }
