@@ -11,7 +11,7 @@ const bcrypt = require('bcrypt');
 const app = express();
 const mysql = require('mysql');
 const AWS = require('aws-sdk');
-require('dotenv').config(); 
+require('dotenv').config();
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
@@ -21,11 +21,10 @@ const client = Sib.ApiClient.instance;
 const apiKey = client.authentications['api-key'];
 apiKey.apiKey = process.env.EMAIL_API_KEY;
 //end smtp
-const { name } = require('ejs');
 const htmlContent = require('./template');
 const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 const BUCKET_NAME = process.env.BUCKET_NAME;
-const IAM_USER_KEY= process.env.IAM_USER_KEY
+const IAM_USER_KEY = process.env.IAM_USER_KEY
 const IAM_USER_SECRET = process.env.IAM_USER_SECRET;
 const PORT = process.env.PORT
 
@@ -44,68 +43,68 @@ app.use(session({
 app.use('/api/expenses', expenseRoutes);
 const accessLogStream = fs.createWriteStream(
   path.join(__dirname, 'Logs', 'access.log'),
-  {flags:'a'}
+  { flags: 'a' }
 )
 app.use(helmet());
 app.use(compression());
-app.use(morgan('combined',{stream : accessLogStream}));
+app.use(morgan('combined', { stream: accessLogStream }));
 
 function uploadToS3(data, filename) {
-      const s3Bucket = new AWS.S3({
-      accessKeyId: IAM_USER_KEY,
-      secretAccessKey: IAM_USER_SECRET
-      });
+  const s3Bucket = new AWS.S3({
+    accessKeyId: IAM_USER_KEY,
+    secretAccessKey: IAM_USER_SECRET
+  });
 
-      const params = {
-      Bucket: BUCKET_NAME,
-      Key: filename,
-      Body: data,
-      ACL: 'public-read'
-      };
-      return new Promise((resolve, reject) => {
-      s3Bucket.upload(params, (err, s3response) => {
-          if (err) {
-              console.log("Something went wrong", err);
-              reject(err);
-          } else {
-              console.log('Success', s3response.Location);
-              resolve(s3response.Location);
-          }
-      });
+  const params = {
+    Bucket: BUCKET_NAME,
+    Key: filename,
+    Body: data,
+    ACL: 'public-read'
+  };
+  return new Promise((resolve, reject) => {
+    s3Bucket.upload(params, (err, s3response) => {
+      if (err) {
+        console.log("Something went wrong", err);
+        reject(err);
+      } else {
+        console.log('Success', s3response.Location);
+        resolve(s3response.Location);
+      }
+    });
   });
 }
 
 app.get('/api/user/download', async (req, res) => {
   let u = req.session.userId;
   if (!u) {
-      return res.status(400).json({ error: 'User has to sign in' });
+    return res.status(400).json({ error: 'User has to sign in' });
   }
 
   let q = `SELECT * FROM expenses WHERE user_id = ?`;
   db.query(q, [u], async (err, resu) => {
-      if (err) {
-          console.error('Error fetching data:', err);
+    if (err) {
+      console.error('Error fetching data:', err);
+      res.status(500).send('Server error');
+      return;
+    }
+
+    try {
+      const stringifiedExpenses = JSON.stringify(resu);
+      const filename = `Expense${u}/${new Date()}.txt`;
+      const fileurl = await uploadToS3(stringifiedExpenses, filename);
+      const insertQuery = `INSERT INTO downloadedFiles (userid, url, downloaded_at) VALUES (?, ?, NOW())`;
+      db.query(insertQuery, [u, fileurl], (insertErr) => {
+        if (insertErr) {
+          console.error('Error inserting data:', insertErr);
           res.status(500).send('Server error');
           return;
-      }
-
-      try {
-          const stringifiedExpenses = JSON.stringify(resu);
-          const filename = `Expense${u}/${new Date()}.txt`;
-          const fileurl = await uploadToS3(stringifiedExpenses, filename);
-          const insertQuery = `INSERT INTO downloadedFiles (userid, url, downloaded_at) VALUES (?, ?, NOW())`;
-            db.query(insertQuery, [u, fileurl], (insertErr) => {
-                if (insertErr) {
-                    console.error('Error inserting data:', insertErr);
-                    res.status(500).send('Server error');
-                    return;
-                }
-                res.status(200).json({ userId: u, fileurl, success: true });
-            });
-      } catch (uploadErr) {
-          console.error('Error uploading to S3:', uploadErr);
-          res.status(500).send('Server error');
-      }
+        }
+        res.status(200).json({ userId: u, fileurl, success: true });
+      });
+    } catch (uploadErr) {
+      console.error('Error uploading to S3:', uploadErr);
+      res.status(500).send('Server error');
+    }
   });
 });
 
@@ -116,8 +115,8 @@ app.get('/api/user/download-history', (req, res) => {
   }
 
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10; 
-  const offset = (page - 1) * limit; 
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = (page - 1) * limit;
 
   const countQuery = `SELECT COUNT(*) AS count FROM downloadedFiles WHERE userid = ?`;
   const dataQuery = `SELECT url, downloaded_at FROM downloadedFiles WHERE userid = ? ORDER BY downloaded_at DESC LIMIT ? OFFSET ?`;
@@ -161,58 +160,58 @@ app.get('/api/leaderboard', (req, res) => {
 app.post('/password/forgotpassword', async (req, res) => {
   const { email } = req.body;
   if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+    return res.status(400).json({ error: 'Email is required' });
   }
 
   const userQuery = 'SELECT id FROM users WHERE email = ?';
   db.query(userQuery, [email], (error, results) => {
+    if (error) {
+      console.error('Error finding user:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userId = results[0].id;
+    const requestId = uuidv4();
+    const insertQuery = 'INSERT INTO forgotpasswordrequests (id, userId, isactive) VALUES (?, ?, ?)';
+
+    db.query(insertQuery, [requestId, userId, true], async (error) => {
       if (error) {
-          console.error('Error finding user:', error);
-          return res.status(500).json({ error: 'Internal server error' });
+        console.error('Error creating request:', error);
+        return res.status(500).json({ error: 'Internal server error' });
       }
 
-      if (results.length === 0) {
-          return res.status(404).json({ error: 'User not found' });
+      const resetUrl = `http://52.90.231.173:3000/password/resetpassword/${requestId}`;
+
+      const apiInstance = new Sib.TransactionalEmailsApi();
+      const sender = {
+        email: "javagalsrinath.619@gmail.com",
+        name: "Srinath",
+      };
+      const receivers = [
+        { email: email }
+      ];
+      const htmlContent = `<p>You requested a password reset. Click the link to reset your password: <a href="${resetUrl}">${resetUrl}</a></p>`;
+      const textContent = `You requested a password reset. Click the link to reset your password: ${resetUrl}`;
+
+      try {
+        const sendEmail = await apiInstance.sendTransacEmail({
+          sender,
+          to: receivers,
+          subject: "Password Reset Request",
+          textContent: textContent,
+          htmlContent: htmlContent,
+        });
+        console.log('Email sent successfully:', sendEmail);
+        return res.status(200).json({ message: 'Password reset link sent to your email.' });
+      } catch (error) {
+        console.error('Error sending email:', error);
+        return res.status(500).json({ error: 'Failed to send email' });
       }
-
-      const userId = results[0].id;
-      const requestId = uuidv4();
-      const insertQuery = 'INSERT INTO forgotpasswordrequests (id, userId, isactive) VALUES (?, ?, ?)';
-
-      db.query(insertQuery, [requestId, userId, true], async (error) => {
-          if (error) {
-              console.error('Error creating request:', error);
-              return res.status(500).json({ error: 'Internal server error' });
-          }
-
-          const resetUrl = `http://52.90.231.173:3000/password/resetpassword/${requestId}`;
-
-          const apiInstance = new Sib.TransactionalEmailsApi();
-          const sender = {
-              email: "javagalsrinath.619@gmail.com",
-              name: "Srinath",
-          };
-          const receivers = [
-              { email: email }
-          ];
-          const htmlContent = `<p>You requested a password reset. Click the link to reset your password: <a href="${resetUrl}">${resetUrl}</a></p>`;
-          const textContent = `You requested a password reset. Click the link to reset your password: ${resetUrl}`;
-
-          try {
-              const sendEmail = await apiInstance.sendTransacEmail({
-                  sender,
-                  to: receivers,
-                  subject: "Password Reset Request",
-                  textContent: textContent,
-                  htmlContent: htmlContent,
-              });
-              console.log('Email sent successfully:', sendEmail);
-              return res.status(200).json({ message: 'Password reset link sent to your email.' });
-          } catch (error) {
-              console.error('Error sending email:', error);
-              return res.status(500).json({ error: 'Failed to send email' });
-          }
-      });
+    });
   });
 });
 
@@ -221,16 +220,16 @@ app.get('/password/resetpassword/:requestId', (req, res) => {
 
   const query = 'SELECT * FROM ForgotPasswordRequests WHERE id = ? AND isactive = TRUE';
   db.query(query, [requestId], (error, results) => {
-      if (error) {
-          console.error('Error querying reset request:', error);
-          return res.status(500).send('Internal Server Error');
-      }
+    if (error) {
+      console.error('Error querying reset request:', error);
+      return res.status(500).send('Internal Server Error');
+    }
 
-      if (results.length === 0) {
-          return res.status(404).send('Invalid or expired reset link');
-      }
+    if (results.length === 0) {
+      return res.status(404).send('Invalid or expired reset link');
+    }
 
-      res.send(`
+    res.send(`
           <form action="/password/resetpassword/${requestId}" method="POST">
              New Password: <input type="password" id="newPassword" name="newPassword" required>
               <button type="submit">Reset Password</button>
@@ -243,50 +242,50 @@ app.post('/password/resetpassword/:requestId', (req, res) => {
   const { requestId } = req.params;
   const { newPassword } = req.body;
   if (!newPassword) {
-      return res.status(400).send('New password is required');
+    return res.status(400).send('New password is required');
   }
 
   const selectQuery = 'SELECT userId FROM ForgotPasswordRequests WHERE id = ? AND isactive = TRUE';
   db.query(selectQuery, [requestId], (error, results) => {
-      if (error) {
-          console.error('Error querying reset request:', error);
+    if (error) {
+      console.error('Error querying reset request:', error);
+      return res.status(500).send('Internal Server Error');
+    }
+
+    if (results.length === 0) {
+      return res.status(404).send('Invalid or expired reset link');
+    }
+
+    const userId = results[0].userId;
+
+    bcrypt.hash(newPassword, 10, (err, hashedPassword) => {
+      if (err) {
+        console.error('Error hashing password:', err);
+        return res.status(500).send('Internal Server Error');
+      }
+
+      const updateQuery = 'UPDATE users SET password = ? WHERE id = ?';
+      db.query(updateQuery, [hashedPassword, userId], (error) => {
+        if (error) {
+          console.error('Error updating password:', error);
           return res.status(500).send('Internal Server Error');
-      }
+        }
 
-      if (results.length === 0) {
-          return res.status(404).send('Invalid or expired reset link');
-      }
-
-      const userId = results[0].userId;
-
-      bcrypt.hash(newPassword, 10, (err, hashedPassword) => {
-          if (err) {
-              console.error('Error hashing password:', err);
-              return res.status(500).send('Internal Server Error');
+        const deactivateQuery = 'UPDATE ForgotPasswordRequests SET isactive = FALSE WHERE id = ?';
+        db.query(deactivateQuery, [requestId], (error) => {
+          if (error) {
+            console.error('Error deactivating reset request:', error);
+            return res.status(500).send('Internal Server Error');
           }
 
-          const updateQuery = 'UPDATE users SET password = ? WHERE id = ?';
-          db.query(updateQuery, [hashedPassword, userId], (error) => {
-              if (error) {
-                  console.error('Error updating password:', error);
-                  return res.status(500).send('Internal Server Error');
-              }
-
-              const deactivateQuery = 'UPDATE ForgotPasswordRequests SET isactive = FALSE WHERE id = ?';
-              db.query(deactivateQuery, [requestId], (error) => {
-                  if (error) {
-                      console.error('Error deactivating reset request:', error);
-                      return res.status(500).send('Internal Server Error');
-                  }
-
-                  res.send('Password has been reset successfully');
-              });
-          });
+          res.send('Password has been reset successfully');
+        });
       });
+    });
   });
 });
 
-app.post('/api/expenses/checkPremium', (req, res) => { 
+app.post('/api/expenses/checkPremium', (req, res) => {
   let q = 'SELECT name,premium FROM users WHERE  email = ?';
   let e = req.body.email;
   db.query(q, e, (err, results) => {
@@ -297,7 +296,7 @@ app.post('/api/expenses/checkPremium', (req, res) => {
       return res.json({ error: 'User not a premium member.' });
     } else {
       let userName = results[0].name;
-      return res.json({ name: userName , premium: results[0].premium});
+      return res.json({ name: userName, premium: results[0].premium });
     }
   });
 });
@@ -317,7 +316,7 @@ app.post('/premium', async (req, res) => {
       if (results.affectedRows === 0) {
         return res.status(404).json({ error: 'User not found' });
       } else {
-        res.json({ message: 'Premium status updated successfully'});
+        res.json({ message: 'Premium status updated successfully' });
       }
     });
   } else {
@@ -325,27 +324,27 @@ app.post('/premium', async (req, res) => {
   }
 });
 
-app.post('/purchase/premium',async (req,res)=>{
-  try {  
+app.post('/purchase/premium', async (req, res) => {
+  try {
     const sess = await stripe.checkout.sessions.create({
-      payment_method_types:['card'],
-      mode:'payment',
-      line_items:req.body.items.map(item =>{
-        return{
-          price_data:{
-            currency:'INR',
-            product_data:{
-              name:item.name
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: req.body.items.map(item => {
+        return {
+          price_data: {
+            currency: 'INR',
+            product_data: {
+              name: item.name
             },
-            unit_amount:item.priceInCents
+            unit_amount: item.priceInCents
           },
-          quantity:item.quantity
+          quantity: item.quantity
         }
       }),
       success_url: `${process.env.SERVER_url}/success.html?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.SERVER_url}/cancel.html`
     })
-    res.json({url:sess.url});
+    res.json({ url: sess.url });
   } catch (e) {
     res.json(e);
   }
@@ -373,9 +372,9 @@ app.post('/premium', async (req, res) => {
   }
 });
 
-app.use((req,res)=>{
-  console.log('urll',req.url);
-  res.sendFile(path.join(__dirname,`public/${req.url}`));
+app.use((req, res) => {
+  console.log('urll', req.url);
+  res.sendFile(path.join(__dirname, `public/${req.url}`));
 })
 
 
