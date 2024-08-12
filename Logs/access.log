@@ -266,3 +266,4 @@
 ::1 - - [12/Aug/2024:09:20:31 +0000] "POST /api/expenses/checkPremium HTTP/1.1" 200 26 "http://52.90.231.173:3000/expenseTracker.html" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
 ::1 - - [12/Aug/2024:09:20:31 +0000] "POST /api/expenses/checkPremium HTTP/1.1" 200 26 "http://52.90.231.173:3000/expenseTracker.html" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
 ::1 - - [12/Aug/2024:09:20:31 +0000] "GET /api/user/download-history?page=1&limit=10 HTTP/1.1" 304 - "http://52.90.231.173:3000/expenseTracker.html" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
+::1 - - [12/Aug/2024:13:36:48 +0000] "GET /api/user/download HTTP/1.1" 400 31 "-" "PostmanRuntime/7.40.0"
