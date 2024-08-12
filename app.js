@@ -75,6 +75,13 @@ function uploadToS3(data, filename) {
   });
 }
 
+app.get('/config', (req, res) => {
+  res.json({
+    apiUrl: process.env.API_URL || 'http://52.90.231.173:3000'
+  });
+});
+
+
 app.get('/api/user/download', async (req, res) => {
   let u = req.session.userId;
   if (!u) {

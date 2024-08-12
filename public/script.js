@@ -1,12 +1,33 @@
-const apiUrl = `${process.env.SERVER_url}/api/expenses`;
+let apiUrl;
 let currentPage = 1;
 let limit = 10;
-document.addEventListener('DOMContentLoaded', () => {
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Fetch the configuration from the server
+    const config = await fetchConfig();
+    apiUrl = `${config.apiUrl}/api/expenses`;
+
+    // Proceed with other initializations
     fetchExpenses();
     checkPremium();
     setupBuyPremiumButton();
     fetchDownloadHistory();
 });
+
+async function fetchConfig() {
+    try {
+        const response = await fetch('/config');
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const config = await response.json();
+        return config;
+    } catch (error) {
+        console.error('Error fetching configuration:', error);
+        return { apiUrl: 'http://default.url' }; // Fallback URL
+    }
+}
+
 async function checkPremium() {
     try {
         let ue = localStorage.getItem('Useremail');
@@ -25,7 +46,7 @@ async function checkPremium() {
 
             downloadexe.onclick = async function fetchFile() {
                 try {
-                    const response = await fetch(`${process.env.SERVER_url}/api/user/download`);
+                    const response = await fetch(`${apiUrl}/user/download`);
                     if (response.status === 200) {
                         const data = await response.json();
                         var a = document.createElement("a");
@@ -47,7 +68,7 @@ async function checkPremium() {
             }
 
             leaderBoardButton.onclick = function fetchLeaderBoard() {
-                fetch(`${process.env.SERVER_url}/api/leaderboard`)
+                fetch(`${apiUrl}/leaderboard`)
                     .then(response => response.json())
                     .then(data => {
                         const leaderBoardDiv = document.getElementById('leaderBoard');
@@ -76,7 +97,7 @@ async function checkPremium() {
 
 async function fetchDownloadHistory(page = 1) {
     try {
-        const response = await fetch(`${process.env.SERVER_url}/api/user/download-history?page=${page}&limit=${limit}`);
+        const response = await fetch(`${apiUrl}/user/download-history?page=${page}&limit=${limit}`);
         if (response.status === 200) {
             const result = await response.json();
             const data = result.data;
@@ -111,6 +132,7 @@ function generatePaginationControls(totalPages) {
         paginationControls.appendChild(pageButton);
     }
 }
+
 function changePage(page) {
     currentPage = page;
     fetchDownloadHistory(currentPage);
@@ -123,21 +145,18 @@ function updateRowsPerPage() {
     fetchDownloadHistory(currentPage);
 }
 
-fetchDownloadHistory(currentPage);
-
-checkPremium();
-
 function removeBuyPremiumButton() {
     let buyPremiumButton = document.getElementById('rzp-button1');
     if (buyPremiumButton) {
         buyPremiumButton.remove();
     }
 }
+
 function setupBuyPremiumButton() {
     const buyPremiumButton = document.getElementById('rzp-button1');
     if (buyPremiumButton) {
         buyPremiumButton.addEventListener("click", () => {
-            fetch(`${process.env.SERVER_url}/purchase/premium`, {
+            fetch(`${apiUrl}/purchase/premium`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -154,6 +173,7 @@ function setupBuyPremiumButton() {
         });
     }
 }
+
 function addExpense() {
     const amount = document.getElementById('amount').value;
     const description = document.getElementById('description').value;
@@ -173,6 +193,7 @@ function addExpense() {
         })
         .catch(error => console.error('Error adding expense:', error));
 }
+
 function fetchExpenses() {
     axios.get(apiUrl)
         .then(response => {
@@ -243,7 +264,6 @@ function signup() {
     }
 
     const user = { name, email, password };
-    //console.log(user);
     axios.post(`${apiUrl}/user/signup`, user)
         .then(response => {
             alert('Signup successful!');
@@ -268,7 +288,7 @@ async function login() {
         errorMessageDiv.textContent = 'Please fill in all fields';
         return;
     }
-    await axios.post(`${process.env.SERVER_url}/api/expenses/user/login`, { email, password })
+    await axios.post(`${apiUrl}/user/login`, { email, password })
         .then((res) => {
             let useremail = res.data.email;
             localStorage.setItem('Useremail', useremail);
@@ -293,19 +313,17 @@ document.getElementById('forgotPasswordFormElement').addEventListener('submit', 
     event.preventDefault();
     const email = document.getElementById('forgotemail').value;
     const data = JSON.stringify({ email: email });
-    axios.post(`${process.env.SERVER_url}/password/forgotpassword`, data, {
+    axios.post(`${apiUrl}/password/forgotpassword`, data, {
         headers: {
             'Content-Type': 'application/json'
         }
     })
         .then(response => {
-            alert("Password rest link sent to your mail");
-            window.location.href = `${process.env.SERVER_url}/`;
+            alert("Password reset link sent to your email");
+            window.location.href = `${apiUrl}/`;
         })
         .catch(error => {
             console.error('There was an error!', error);
             alert('An error occurred. Please try again.');
         });
 });
-
-
