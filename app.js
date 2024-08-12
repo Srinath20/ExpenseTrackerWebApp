@@ -52,8 +52,8 @@ app.use(morgan('combined', { stream: accessLogStream }));
 
 function uploadToS3(data, filename) {
   const s3Bucket = new AWS.S3({
-    accessKeyId: IAM_USER_KEY,
-    secretAccessKey: IAM_USER_SECRET
+    accessKeyId: process.env.IAM_USER_KEY,
+    secretAccessKey: process.env.IAM_USER_SECRET
   });
 
   const params = {
@@ -93,7 +93,7 @@ app.get('/api/user/download', async (req, res) => {
       const stringifiedExpenses = JSON.stringify(resu);
       const filename = `Expense${u}/${new Date()}.txt`;
       const fileurl = await uploadToS3(stringifiedExpenses, filename);
-      const insertQuery = `INSERT INTO downloadedFiles (userid, url, downloaded_at) VALUES (?, ?, NOW())`;
+      const insertQuery = `INSERT INTO downloadedfiles (userid, url, downloaded_at) VALUES (?, ?, NOW())`;
       db.query(insertQuery, [u, fileurl], (insertErr) => {
         if (insertErr) {
           console.error('Error inserting data:', insertErr);
@@ -119,8 +119,8 @@ app.get('/api/user/download-history', (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const offset = (page - 1) * limit;
 
-  const countQuery = `SELECT COUNT(*) AS count FROM downloadedFiles WHERE userid = ?`;
-  const dataQuery = `SELECT url, downloaded_at FROM downloadedFiles WHERE userid = ? ORDER BY downloaded_at DESC LIMIT ? OFFSET ?`;
+  const countQuery = `SELECT COUNT(*) AS count FROM downloadedfiles WHERE userid = ?`;
+  const dataQuery = `SELECT url, downloaded_at FROM downloadedfiles WHERE userid = ? ORDER BY downloaded_at DESC LIMIT ? OFFSET ?`;
 
   db.query(countQuery, [u], (err, countResults) => {
     if (err) {
