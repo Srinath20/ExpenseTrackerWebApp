@@ -1,11 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Payment Failed</title>
 </head>
+
 <body>
     <h1>PAYMENT STATUS : FAILURE !!!</h1>
+    <p>Redirecting you to your expense tracker...</p>
+    <script>
+        setTimeout(() => {
+            alert("Payment failed. Please try again.");
+            window.location.href = "./expenseTracker.html";
+        }, 2000);
+    </script>
 </body>
+
 </html>

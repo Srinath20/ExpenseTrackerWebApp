@@ -27,6 +27,7 @@ const BUCKET_NAME = process.env.BUCKET_NAME;
 const IAM_USER_KEY = process.env.IAM_USER_KEY
 const IAM_USER_SECRET = process.env.IAM_USER_SECRET;
 const PORT = process.env.PORT
+const apiUrl = 'http://52.90.231.173:3000';
 
 
 app.use(express.json());
@@ -140,9 +141,6 @@ app.get('/api/user/download-history', (req, res) => {
   });
 });
 
-
-
-
 app.get('/api/leaderboard', (req, res) => {
   const query = `SELECT name,totalexpense
     FROM users
@@ -184,7 +182,7 @@ app.post('/password/forgotpassword', async (req, res) => {
         return res.status(500).json({ error: 'Internal server error' });
       }
 
-      const resetUrl = `http://52.90.231.173:3000/password/resetpassword/${requestId}`;
+      const resetUrl = `${apiUrl}/password/resetpassword/${requestId}`;
 
       const apiInstance = new Sib.TransactionalEmailsApi();
       const sender = {
@@ -301,30 +299,8 @@ app.post('/api/expenses/checkPremium', (req, res) => {
   });
 });
 
-app.post('/premium', async (req, res) => {
-  if (req.body.premium === 1) {
-    const user = req.session.userId;
-    if (!user) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-    let q = `UPDATE users SET premium = 1 WHERE id = ?`;
-    db.query(q, [user], (err, results) => {
-      if (err) {
-        console.error('Error updating premium status:', err);
-        return res.status(500).json({ error: 'Failed to update premium status' });
-      }
-      if (results.affectedRows === 0) {
-        return res.status(404).json({ error: 'User not found' });
-      } else {
-        res.json({ message: 'Premium status updated successfully' });
-      }
-    });
-  } else {
-    res.json({ message: "Payment failed" });
-  }
-});
-
 app.post('/purchase/premium', async (req, res) => {
+  console.log(process.env.SERVER_url);
   try {
     const sess = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -341,7 +317,7 @@ app.post('/purchase/premium', async (req, res) => {
           quantity: item.quantity
         }
       }),
-      success_url: `${process.env.SERVER_url}/success.html?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${process.env.SERVER_url}/success.html`,
       cancel_url: `${process.env.SERVER_url}/cancel.html`
     })
     res.json({ url: sess.url });
@@ -350,13 +326,15 @@ app.post('/purchase/premium', async (req, res) => {
   }
 })
 app.post('/premium', async (req, res) => {
-  if (req.body.premium === 1) {
-    const user = req.session.userId;
-    if (!user) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
+  const userId = req.session.userId;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'User not authenticated' });
+  }
+
+  try {
     let q = `UPDATE users SET premium = 1 WHERE id = ?`;
-    db.query(q, [user], (err, results) => {
+    db.query(q, [userId], (err, results) => {
       if (err) {
         console.error('Error updating premium status:', err);
         return res.status(500).json({ error: 'Failed to update premium status' });
@@ -367,8 +345,9 @@ app.post('/premium', async (req, res) => {
         res.json({ message: 'Premium status updated successfully' });
       }
     });
-  } else {
-    res.json({ message: "Payment failed" });
+  } catch (error) {
+    console.error('Error updating premium status:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

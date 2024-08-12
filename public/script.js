@@ -1,4 +1,4 @@
-const apiUrl = 'http://52.90.231.173:3000/api/expenses';
+const apiUrl = `${process.env.SERVER_url}/api/expenses`;
 let currentPage = 1;
 let limit = 10;
 document.addEventListener('DOMContentLoaded', () => {
@@ -7,99 +7,99 @@ document.addEventListener('DOMContentLoaded', () => {
     setupBuyPremiumButton();
     fetchDownloadHistory();
 });
-    async function checkPremium() {
-        try {
-            let ue = localStorage.getItem('Useremail');
-            let response = await axios.post(`${apiUrl}/checkPremium`, { email: ue });
-    
-            if (response.data.premium == 1 && response.data.name) {
-                document.getElementById('premiumWelcome').innerText = `Welcome ${response.data.name}. You are a premium user now.`;
-    
-                let leaderBoardButton = document.createElement('button');
-                leaderBoardButton.id = 'LeaderBoard';
-                leaderBoardButton.innerHTML = 'LeaderBoard';
-    
-                let downloadexe = document.createElement('button');
-                downloadexe.id = 'downloadexe';
-                downloadexe.innerHTML = 'Download expense';
-    
-                downloadexe.onclick = async function fetchFile() {
-                    try {
-                        const response = await fetch('http://52.90.231.173:3000/api/user/download');
-                        if (response.status === 200) {
-                            const data = await response.json();
-                            var a = document.createElement("a");
-                            a.href = data.fileurl;
-                            a.download = 'myexpense.csv';
-                            a.click();
-                            
-                            const showDownloads = document.getElementById('showDownloads');
-                            const downloadInfo = document.createElement('div');
-                            downloadInfo.innerHTML = `User ID: ${data.userId} <br> File URL: <a href="${data.fileurl}" target="_blank">${data.fileurl}</a>`;
-                            showDownloads.appendChild(downloadInfo);
-                            fetchDownloadHistory();
-                        } else {
-                            throw new Error('Failed to download file');
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
+async function checkPremium() {
+    try {
+        let ue = localStorage.getItem('Useremail');
+        let response = await axios.post(`${apiUrl}/checkPremium`, { email: ue });
+
+        if (response.data.premium == 1 && response.data.name) {
+            document.getElementById('premiumWelcome').innerText = `Welcome ${response.data.name}. You are a premium user now.`;
+
+            let leaderBoardButton = document.createElement('button');
+            leaderBoardButton.id = 'LeaderBoard';
+            leaderBoardButton.innerHTML = 'LeaderBoard';
+
+            let downloadexe = document.createElement('button');
+            downloadexe.id = 'downloadexe';
+            downloadexe.innerHTML = 'Download expense';
+
+            downloadexe.onclick = async function fetchFile() {
+                try {
+                    const response = await fetch(`${process.env.SERVER_url}/api/user/download`);
+                    if (response.status === 200) {
+                        const data = await response.json();
+                        var a = document.createElement("a");
+                        a.href = data.fileurl;
+                        a.download = 'myexpense.csv';
+                        a.click();
+
+                        const showDownloads = document.getElementById('showDownloads');
+                        const downloadInfo = document.createElement('div');
+                        downloadInfo.innerHTML = `User ID: ${data.userId} <br> File URL: <a href="${data.fileurl}" target="_blank">${data.fileurl}</a>`;
+                        showDownloads.appendChild(downloadInfo);
+                        fetchDownloadHistory();
+                    } else {
+                        throw new Error('Failed to download file');
                     }
+                } catch (error) {
+                    console.error('Error:', error);
                 }
-    
-                leaderBoardButton.onclick = function fetchLeaderBoard() {
-                    fetch('http://52.90.231.173:3000/api/leaderboard')
-                        .then(response => response.json())
-                        .then(data => {
-                            const leaderBoardDiv = document.getElementById('leaderBoard');
-                            leaderBoardDiv.innerHTML = '';
-                            data.forEach(item => {
-                                const div = document.createElement('div');
-                                div.textContent = `Name - ${item.name} -- Total Expenses -- ${item.totalexpense}`;
-                                leaderBoardDiv.appendChild(div);
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Error fetching leaderboard data:', error);
+            }
+
+            leaderBoardButton.onclick = function fetchLeaderBoard() {
+                fetch(`${process.env.SERVER_url}/api/leaderboard`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const leaderBoardDiv = document.getElementById('leaderBoard');
+                        leaderBoardDiv.innerHTML = '';
+                        data.forEach(item => {
+                            const div = document.createElement('div');
+                            div.textContent = `Name - ${item.name} -- Total Expenses -- ${item.totalexpense}`;
+                            leaderBoardDiv.appendChild(div);
                         });
-                }
-    
-                document.getElementById('premiumWelcome').appendChild(downloadexe);
-                document.getElementById('premiumWelcome').appendChild(leaderBoardButton);
-                removeBuyPremiumButton();
-            } else if (response.data.premium == 0 && response.data.name) {
-                document.getElementById('premiumWelcome').innerText = `Welcome ${response.data.name}.`;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching leaderboard data:', error);
+                    });
             }
-        } catch (error) {
-            console.log('Error checking premium status:', error);
+
+            document.getElementById('premiumWelcome').appendChild(downloadexe);
+            document.getElementById('premiumWelcome').appendChild(leaderBoardButton);
+            removeBuyPremiumButton();
+        } else if (response.data.premium == 0 && response.data.name) {
+            document.getElementById('premiumWelcome').innerText = `Welcome ${response.data.name}.`;
         }
+    } catch (error) {
+        console.log('Error checking premium status:', error);
     }
-    
-    async function fetchDownloadHistory(page = 1) {
-        try {
-            const response = await fetch(`http://52.90.231.173:3000/api/user/download-history?page=${page}&limit=${limit}`);
-            if (response.status === 200) {
-                const result = await response.json();
-                const data = result.data;
-                const totalCount = result.totalCount;
-                const totalPages = Math.ceil(totalCount / limit);
-    
-                const showDownloads = document.getElementById('showDownloads');
-                showDownloads.innerHTML = '';
-                data.forEach(item => {
-                    const downloadInfo = document.createElement('div');
-                    downloadInfo.innerHTML = `File URL: <a href="${item.url}" target="_blank">${item.url}</a> <br> Downloaded At: ${new Date(item.downloaded_at).toLocaleString()}`;
-                    showDownloads.appendChild(downloadInfo);
-                });
-    
-                generatePaginationControls(totalPages);
-            } else {
-                throw new Error('Failed to fetch download history');
-            }
-        } catch (error) {
-            console.error('Error fetching download history:', error);
+}
+
+async function fetchDownloadHistory(page = 1) {
+    try {
+        const response = await fetch(`${process.env.SERVER_url}/api/user/download-history?page=${page}&limit=${limit}`);
+        if (response.status === 200) {
+            const result = await response.json();
+            const data = result.data;
+            const totalCount = result.totalCount;
+            const totalPages = Math.ceil(totalCount / limit);
+
+            const showDownloads = document.getElementById('showDownloads');
+            showDownloads.innerHTML = '';
+            data.forEach(item => {
+                const downloadInfo = document.createElement('div');
+                downloadInfo.innerHTML = `File URL: <a href="${item.url}" target="_blank">${item.url}</a> <br> Downloaded At: ${new Date(item.downloaded_at).toLocaleString()}`;
+                showDownloads.appendChild(downloadInfo);
+            });
+
+            generatePaginationControls(totalPages);
+        } else {
+            throw new Error('Failed to fetch download history');
         }
+    } catch (error) {
+        console.error('Error fetching download history:', error);
     }
-    
+}
+
 function generatePaginationControls(totalPages) {
     const paginationControls = document.getElementById('pagination-controls');
     paginationControls.innerHTML = '';
@@ -124,9 +124,9 @@ function updateRowsPerPage() {
 }
 
 fetchDownloadHistory(currentPage);
-    
-    checkPremium();
-    
+
+checkPremium();
+
 function removeBuyPremiumButton() {
     let buyPremiumButton = document.getElementById('rzp-button1');
     if (buyPremiumButton) {
@@ -137,7 +137,7 @@ function setupBuyPremiumButton() {
     const buyPremiumButton = document.getElementById('rzp-button1');
     if (buyPremiumButton) {
         buyPremiumButton.addEventListener("click", () => {
-            fetch('http://52.90.231.173:3000/purchase/premium', {
+            fetch(`${process.env.SERVER_url}/purchase/premium`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -158,21 +158,21 @@ function addExpense() {
     const amount = document.getElementById('amount').value;
     const description = document.getElementById('description').value;
     const category = document.getElementById('category').value;
-  
+
     if (!amount || !description || !category) {
-      alert('Please fill in all fields');
-      return;
+        alert('Please fill in all fields');
+        return;
     }
-  
+
     const expense = { amount, description, category };
-  
+
     axios.post(apiUrl, expense)
-      .then(response => {
-        displayExpense(response.data);
-        clearForm();
-      })
-      .catch(error => console.error('Error adding expense:', error));
-  }
+        .then(response => {
+            displayExpense(response.data);
+            clearForm();
+        })
+        .catch(error => console.error('Error adding expense:', error));
+}
 function fetchExpenses() {
     axios.get(apiUrl)
         .then(response => {
@@ -268,8 +268,7 @@ async function login() {
         errorMessageDiv.textContent = 'Please fill in all fields';
         return;
     }
-
-    await axios.post(`http://52.90.231.173:3000/api/expenses/user/login`, { email, password })
+    await axios.post(`${process.env.SERVER_url}/api/expenses/user/login`, { email, password })
         .then((res) => {
             let useremail = res.data.email;
             localStorage.setItem('Useremail', useremail);
@@ -288,24 +287,25 @@ async function login() {
 document.getElementById('forgotPasswordButton').addEventListener('click', () => {
     console.log("Forgot password!!");
     document.getElementById('forgotPasswordForm').style.display = 'block';
-  });
-  
-  document.getElementById('forgotPasswordFormElement').addEventListener('submit', (event) => {
+});
+
+document.getElementById('forgotPasswordFormElement').addEventListener('submit', (event) => {
     event.preventDefault();
     const email = document.getElementById('forgotemail').value;
     const data = JSON.stringify({ email: email });
-    axios.post('http://52.90.231.173:3000/password/forgotpassword', data,{
+    axios.post(`${process.env.SERVER_url}/password/forgotpassword`, data, {
         headers: {
             'Content-Type': 'application/json'
-        }}) 
-      .then(response => {
-        alert("Password rest link sent to your mail");
-        window.location.href = "http://52.90.231.173:3000/";
-      })
-      .catch(error => {
-        console.error('There was an error!', error);
-        alert('An error occurred. Please try again.');
-      });
-  });
+        }
+    })
+        .then(response => {
+            alert("Password rest link sent to your mail");
+            window.location.href = `${process.env.SERVER_url}/`;
+        })
+        .catch(error => {
+            console.error('There was an error!', error);
+            alert('An error occurred. Please try again.');
+        });
+});
 
 

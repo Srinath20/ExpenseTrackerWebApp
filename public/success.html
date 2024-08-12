@@ -9,33 +9,30 @@
 
 <body>
   <h1>Payment Successful!</h1>
-  <p>Redirecting you to your expense tracker....</p>
+  <p>Redirecting you to your expense tracker...</p>
 
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const sessionId = urlParams.get('session_id');
+      try {
+        console.log('Inside success.html');
+        const response = await fetch(`${process.env.SERVER_url}/premium`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ premium: 1 })
+        });
 
-      if (sessionId) {
-        try {
-          const response = await fetch("http://52.90.231.173:3000/premium", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ premium: 1 })
-          });
-
-          if (response.ok) {
-            window.location.href = "./expenseTracker.html";
-          } else {
-            console.error("Failed to update premium status:", response.statusText);
-          }
-        } catch (error) {
-          console.error("Error updating premium status:", error);
+        if (response.ok) {
+          alert("Payment successful! You are now a premium member.");
+        } else {
+          alert("Failed to update premium status.");
         }
-      } else {
-        console.error("No session_id found in URL");
+      } catch (error) {
+        alert("Error updating premium status.");
+        console.error("Error:", error);
+      } finally {
+        window.location.href = "./expenseTracker.html";
       }
     });
   </script>
