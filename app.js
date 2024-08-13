@@ -12,7 +12,7 @@ const app = express();
 const mysql = require('mysql');
 const AWS = require('aws-sdk');
 require('dotenv').config();
-const helmet = require('helmet');
+const helmet = require('helmet'); // Adding this will cause content security policy error (scp)
 const compression = require('compression');
 const morgan = require('morgan');
 //smtp
@@ -21,7 +21,6 @@ const client = Sib.ApiClient.instance;
 const apiKey = client.authentications['api-key'];
 apiKey.apiKey = process.env.EMAIL_API_KEY;
 //end smtp
-const htmlContent = require('./template');
 const stripe = require('stripe')(process.env.STRIPE_PRIVATE_KEY);
 const BUCKET_NAME = process.env.BUCKET_NAME;
 const IAM_USER_KEY = process.env.IAM_USER_KEY
@@ -46,7 +45,14 @@ const accessLogStream = fs.createWriteStream(
   path.join(__dirname, 'Logs', 'access.log'),
   { flags: 'a' }
 )
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      formAction: ["'self'", "https://52.90.231.173:3000"]
+    }
+  }
+}));
 app.use(compression());
 app.use(morgan('combined', { stream: accessLogStream }));
 
