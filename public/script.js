@@ -3,11 +3,8 @@ let currentPage = 1;
 let limit = 10;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Fetch the configuration from the server
     const config = await fetchConfig();
     apiUrl = `${config.apiUrl}/api/expenses`;
-
-    // Proceed with other initializations
     fetchExpenses();
     checkPremium();
     setupBuyPremiumButton();
@@ -24,10 +21,9 @@ async function fetchConfig() {
         return config;
     } catch (error) {
         console.error('Error fetching configuration:', error);
-        return { apiUrl: 'http://default.url' }; // Fallback URL
+        return { apiUrl: 'http://52.90.231.173:3000' };
     }
 }
-
 async function checkPremium() {
     try {
         let ue = localStorage.getItem('Useremail');
@@ -68,7 +64,7 @@ async function checkPremium() {
             }
 
             leaderBoardButton.onclick = function fetchLeaderBoard() {
-                fetch(`${apiUrl}/leaderboard`)
+                fetch(`${apiUrl}/api/leaderboard`)
                     .then(response => response.json())
                     .then(data => {
                         const leaderBoardDiv = document.getElementById('leaderBoard');
@@ -97,7 +93,7 @@ async function checkPremium() {
 
 async function fetchDownloadHistory(page = 1) {
     try {
-        const response = await fetch(`${apiUrl}/user/download-history?page=${page}&limit=${limit}`);
+        const response = await fetch(`${apiUrl}/api/user/download-history?page=${page}&limit=${limit}`);
         if (response.status === 200) {
             const result = await response.json();
             const data = result.data;
@@ -320,7 +316,7 @@ document.getElementById('forgotPasswordFormElement').addEventListener('submit', 
     })
         .then(response => {
             alert("Password reset link sent to your email");
-            window.location.href = `${apiUrl}/`;
+            window.location.href = './login.html';
         })
         .catch(error => {
             console.error('There was an error!', error);

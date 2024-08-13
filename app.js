@@ -77,12 +77,12 @@ function uploadToS3(data, filename) {
 
 app.get('/config', (req, res) => {
   res.json({
-    apiUrl: process.env.API_URL || 'http://52.90.231.173:3000'
+    apiUrl: process.env.SERVER_url || 'http://52.90.231.173:3000'
   });
 });
 
 
-app.get('/api/user/download', async (req, res) => {
+app.get('/api/expenses/user/download', async (req, res) => {
   let u = req.session.userId;
   if (!u) {
     return res.status(400).json({ error: 'User has to sign in' });
@@ -116,7 +116,7 @@ app.get('/api/user/download', async (req, res) => {
   });
 });
 
-app.get('/api/user/download-history', (req, res) => {
+app.get('/api/expenses/api/user/download-history', (req, res) => {
   let u = req.session.userId;
   if (!u) {
     return res.status(400).json({ error: 'User has to sign in' });
@@ -148,7 +148,7 @@ app.get('/api/user/download-history', (req, res) => {
   });
 });
 
-app.get('/api/leaderboard', (req, res) => {
+app.get('/api/expenses/api/leaderboard', (req, res) => {
   const query = `SELECT name,totalexpense
     FROM users
     ORDER BY totalexpense DESC`;
@@ -162,7 +162,7 @@ app.get('/api/leaderboard', (req, res) => {
   });
 });
 
-app.post('/password/forgotpassword', async (req, res) => {
+app.post('/api/expenses/password/forgotpassword', async (req, res) => {
   const { email } = req.body;
   if (!email) {
     return res.status(400).json({ error: 'Email is required' });
@@ -306,7 +306,7 @@ app.post('/api/expenses/checkPremium', (req, res) => {
   });
 });
 
-app.post('/purchase/premium', async (req, res) => {
+app.post('/api/expenses/purchase/premium', async (req, res) => {
   console.log(process.env.SERVER_url);
   try {
     const sess = await stripe.checkout.sessions.create({
