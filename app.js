@@ -223,7 +223,7 @@ app.post('/api/expenses/password/forgotpassword', async (req, res) => {
 app.get('/password/resetpassword/:requestId', (req, res) => {
   const { requestId } = req.params;
 
-  const query = 'SELECT * FROM ForgotPasswordRequests WHERE id = ? AND isactive = TRUE';
+  const query = 'SELECT * FROM forgotpasswordrequests WHERE id = ? AND isactive = TRUE';
   db.query(query, [requestId], (error, results) => {
     if (error) {
       console.error('Error querying reset request:', error);
@@ -250,7 +250,7 @@ app.post('/password/resetpassword/:requestId', (req, res) => {
     return res.status(400).send('New password is required');
   }
 
-  const selectQuery = 'SELECT userId FROM ForgotPasswordRequests WHERE id = ? AND isactive = TRUE';
+  const selectQuery = 'SELECT userId FROM forgotpasswordrequests WHERE id = ? AND isactive = TRUE';
   db.query(selectQuery, [requestId], (error, results) => {
     if (error) {
       console.error('Error querying reset request:', error);
@@ -276,7 +276,7 @@ app.post('/password/resetpassword/:requestId', (req, res) => {
           return res.status(500).send('Internal Server Error');
         }
 
-        const deactivateQuery = 'UPDATE ForgotPasswordRequests SET isactive = FALSE WHERE id = ?';
+        const deactivateQuery = 'UPDATE forgotpasswordrequests SET isactive = FALSE WHERE id = ?';
         db.query(deactivateQuery, [requestId], (error) => {
           if (error) {
             console.error('Error deactivating reset request:', error);
