@@ -26,7 +26,7 @@ const BUCKET_NAME = process.env.BUCKET_NAME;
 const IAM_USER_KEY = process.env.IAM_USER_KEY
 const IAM_USER_SECRET = process.env.IAM_USER_SECRET;
 const PORT = process.env.PORT
-const apiUrl = 'http://52.90.231.173:3000';
+const apiUrl = process.env.SERVER_url;
 
 
 app.use(express.json());
@@ -83,7 +83,7 @@ function uploadToS3(data, filename) {
 
 app.get('/config', (req, res) => {
   res.json({
-    apiUrl: process.env.SERVER_url || 'http://52.90.231.173:3000'
+    apiUrl: process.env.SERVER_url || 'https://52.90.231.173:3000'
   });
 });
 
