@@ -49,7 +49,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      formAction: ["'self'", "https://52.90.231.173:3000"]
+      formAction: ["'self'", "http://52.90.231.173:3000"]
     }
   }
 }));
@@ -83,7 +83,7 @@ function uploadToS3(data, filename) {
 
 app.get('/config', (req, res) => {
   res.json({
-    apiUrl: process.env.SERVER_url || 'https://52.90.231.173:3000'
+    apiUrl: process.env.SERVER_url || 'http://52.90.231.173:3000'
   });
 });
 

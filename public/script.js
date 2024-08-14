@@ -21,7 +21,7 @@ async function fetchConfig() {
         return config;
     } catch (error) {
         console.error('Error fetching configuration:', error);
-        return { apiUrl: 'https://52.90.231.173:3000' };
+        return { apiUrl: 'http://52.90.231.173:3000' };
     }
 }
 async function checkPremium() {
