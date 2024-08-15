@@ -12,9 +12,6 @@ const app = express();
 const mysql = require('mysql');
 const AWS = require('aws-sdk');
 require('dotenv').config();
-const helmet = require('helmet'); // Adding this will cause content security policy error (scp)
-const compression = require('compression');
-const morgan = require('morgan');
 //smtp
 const Sib = require('sib-api-v3-sdk');
 const client = Sib.ApiClient.instance;
@@ -45,16 +42,6 @@ const accessLogStream = fs.createWriteStream(
   path.join(__dirname, 'Logs', 'access.log'),
   { flags: 'a' }
 )
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      formAction: ["'self'", "http://52.90.231.173:3000"]
-    }
-  }
-}));
-app.use(compression());
-app.use(morgan('combined', { stream: accessLogStream }));
 
 function uploadToS3(data, filename) {
   const s3Bucket = new AWS.S3({
