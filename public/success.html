@@ -14,17 +14,18 @@
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
       try {
-        console.log('Inside success.html');
-        const response = await fetch(`${process.env.SERVER_url}/premium`, {
+        const response = await fetch(`http://52.90.231.173:3000/premium`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
-          }
+          },
+          body: JSON.stringify({ premium: 1 })
         });
+
         if (response.ok) {
           alert("Payment successful! You are now a premium member.");
         } else {
-          alert("Failed to update premium status from success.html.");
+          alert("Failed to update premium status.");
         }
       } catch (error) {
         alert("Error updating premium status.");
@@ -34,6 +35,7 @@
       }
     });
   </script>
+
 </body>
 
 </html>

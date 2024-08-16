@@ -57,7 +57,6 @@ function uploadToS3(data, filename) {
         console.log("Something went wrong", err);
         reject(err);
       } else {
-        console.log('Success', s3response.Location);
         resolve(s3response.Location);
       }
     });
@@ -323,10 +322,10 @@ app.post('/api/expenses/purchase/premium', async (req, res) => {
 })
 app.post('/premium', async (req, res) => {
   const userId = req.session.userId;
-  console.log(userId);
   if (!userId) {
     return res.status(401).json({ error: 'User not authenticated' });
   }
+
   try {
     let q = `UPDATE users SET premium = 1 WHERE id = ?`;
     db.query(q, [userId], (err, results) => {
@@ -345,12 +344,6 @@ app.post('/premium', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
-app.use((req, res) => {
-  console.log('urll', req.url);
-  res.sendFile(path.join(__dirname, `public/${req.url}`));
-})
-
 
 app.listen(PORT, () => {
   console.log(`Server running in ${PORT}`);
