@@ -19,14 +19,12 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ premium: 1 })
+          }
         });
-
         if (response.ok) {
           alert("Payment successful! You are now a premium member.");
         } else {
-          alert("Failed to update premium status.");
+          alert("Failed to update premium status from success.html.");
         }
       } catch (error) {
         alert("Error updating premium status.");

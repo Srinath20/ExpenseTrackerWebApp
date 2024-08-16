@@ -38,10 +38,6 @@ app.use(session({
   saveUninitialized: true,
 }));
 app.use('/api/expenses', expenseRoutes);
-const accessLogStream = fs.createWriteStream(
-  path.join(__dirname, 'Logs', 'access.log'),
-  { flags: 'a' }
-)
 
 function uploadToS3(data, filename) {
   const s3Bucket = new AWS.S3({
@@ -327,11 +323,10 @@ app.post('/api/expenses/purchase/premium', async (req, res) => {
 })
 app.post('/premium', async (req, res) => {
   const userId = req.session.userId;
-
+  console.log(userId);
   if (!userId) {
     return res.status(401).json({ error: 'User not authenticated' });
   }
-
   try {
     let q = `UPDATE users SET premium = 1 WHERE id = ?`;
     db.query(q, [userId], (err, results) => {
