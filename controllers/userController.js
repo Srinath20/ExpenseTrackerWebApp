@@ -5,7 +5,7 @@ const db = require('../db');
 exports.signupUser = async (req, res) => {
   const { name, email, password } = req.body;
   const checkEmailSql = 'SELECT * FROM users WHERE email = ?';
-  
+
   db.query(checkEmailSql, [email], async (err, results) => {
     if (err) throw err;
     if (results.length > 0) {
@@ -15,7 +15,7 @@ exports.signupUser = async (req, res) => {
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         const sql = 'INSERT INTO users (name, email, password) VALUES (?, ?, ?)';
-        
+
         db.query(sql, [name, email, hashedPassword], (err, result) => {
           if (err) throw err;
           res.json({ id: result.insertId, name, email });
@@ -30,7 +30,7 @@ exports.signupUser = async (req, res) => {
 exports.loginUser = (req, res) => {
   const { email, password } = req.body;
   const sql = 'SELECT * FROM users WHERE email = ?';
-  
+
   db.query(sql, [email], async (err, results) => {
     if (err) throw err;
     if (results.length === 0) {
@@ -41,9 +41,9 @@ exports.loginUser = (req, res) => {
       if (match) {
         req.session.userName = user.name;
         req.session.userId = user.id;
-        res.json({ id: user.id, name: user.name, email: user.email });         
-     } else res.status(400).json({ error: 'User not authorized' });
-      
+        res.json({ id: user.id, name: user.name, email: user.email });
+      } else res.status(400).json({ error: 'User not authorized' });
+
     }
   });
 };

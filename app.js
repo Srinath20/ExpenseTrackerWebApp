@@ -69,9 +69,9 @@ app.get('/config', (req, res) => {
   });
 });
 
-app.use((req, res) => {
+/* app.use((req, res) => {
   console.log('url:', req.url);
-});
+}); */
 
 app.get('/api/expenses/user/download', async (req, res) => {
   let u = req.session.userId;
