@@ -21,7 +21,7 @@ async function fetchConfig() {
         return config;
     } catch (error) {
         console.error('Error fetching configuration:', error);
-        return { apiUrl: 'http://52.90.231.173:3000' };
+        return { apiUrl: 'http://localhost:3000' };
     }
 }
 async function checkPremium() {
@@ -123,6 +123,7 @@ function generatePaginationControls(totalPages) {
 
     for (let i = 1; i <= totalPages; i++) {
         const pageButton = document.createElement('button');
+        pageButton.type = 'button';
         pageButton.textContent = i;
         pageButton.onclick = () => changePage(i);
         paginationControls.appendChild(pageButton);

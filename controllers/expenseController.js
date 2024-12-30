@@ -1,177 +1,80 @@
-const mysql = require('mysql2');
-const db = require('../db');
+const mongoose = require('mongoose');
+const User = require('../models/user');
+const Expense = require('../models/expense');
 
-exports.getAllExpenses = (req, res) => {
-  const username = req.session.userName;
-  if (!username) {
+exports.getAllExpenses = async (req, res) => {
+  const userId = req.session.userId;
+  if (!userId) {
     return res.status(401).json({ error: 'User not authenticated' });
   }
-  const userId = req.session.userId;
-  const sql = 'SELECT * FROM expenses WHERE user_id = ?';
-  db.query(sql, [userId], (err, results) => {
-    if (err) throw err;
-    res.json(results);
-  });
+
+  try {
+    const expenses = await Expense.find({ userId }).populate('userId', 'name');
+    res.json(expenses);
+  } catch (err) {
+    console.error('Error fetching expenses:', err);
+    res.status(500).json({ error: 'Failed to retrieve expenses' });
+  }
 };
 
-
-exports.createExpense = (req, res) => {
+exports.createExpense = async (req, res) => {
   const { amount, description, category } = req.body;
-  const username = req.session.userName;
   const userId = req.session.userId;
 
-  if (!username) {
-    return res.status(401).json({ error: 'User not authenticated' });
-  }
-  db.beginTransaction(err => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to start transaction' });
-    }
-    const insertExpenseQuery = 'INSERT INTO expenses (amount, description, category, user_id) VALUES (?, ?, ?, ?)';
-    db.query(insertExpenseQuery, [amount, description, category, userId], (err, result) => {
-      if (err) {
-        return db.rollback(() => {
-          res.status(500).json({ error: 'Failed to add expense' });
-        });
-      }
-      const updateTotalExpenseQuery = `
-        UPDATE users 
-        SET totalexpense = IFNULL(totalexpense, 0) + ?
-        WHERE id = ?;
-      `;
-      db.query(updateTotalExpenseQuery, [amount, userId], (err) => {
-        if (err) {
-          return db.rollback(() => {
-            res.status(500).json({ error: 'Failed to update total expense' });
-          });
-        }
-        db.commit(err => {
-          if (err) {
-            return db.rollback(() => {
-              res.status(500).json({ error: 'Failed to commit transaction' });
-            });
-          }
+  try {
+    const newExpense = new Expense({ amount, description, category, userId });
+    const savedExpense = await newExpense.save();
 
-          res.json({ 
-            id: result.insertId, 
-            amount, 
-            description, 
-            category, 
-            user_id: username 
-          });
-        });
-      });
-    });
-  });
+    await User.findByIdAndUpdate(userId, { $inc: { totalExpense: amount } });
+
+    res.status(201).json(savedExpense);
+  } catch (err) {
+    console.error('Error creating expense:', err);
+    res.status(500).json({ error: 'Failed to create expense' });
+  }
 };
 
-
-exports.updateExpense = (req, res) => {
+exports.updateExpense = async (req, res) => {
   const { id } = req.params;
   const { amount, description, category } = req.body;
 
-  const getUserIdQuery = 'SELECT user_id FROM expenses WHERE id = ?';
-  const getTotalExpenseQuery = 'SELECT SUM(amount) AS total FROM expenses WHERE user_id = ?';
-  const updateExpenseQuery = 'UPDATE expenses SET amount = ?, description = ?, category = ? WHERE id = ?';
-  const updateUserTotalExpenseQuery = 'UPDATE users SET totalExpense = ? WHERE id = ?';
-
-  db.beginTransaction((transactionErr) => {
-    if (transactionErr) {
-      return res.status(500).json({ error: 'Transaction initiation failed' });
+  try {
+    const expense = await Expense.findById(id);
+    if (!expense) {
+      return res.status(404).json({ error: 'Expense not found' });
     }
 
-    db.query(getUserIdQuery, [id], (err, result) => {
-      if (err) {
-        return db.rollback(() => {
-          res.status(500).json({ error: 'Failed to fetch user ID' });
-        });
-      }
+    const amountDifference = amount - expense.amount;
 
-      const userId = result[0].user_id;
+    expense.amount = amount;
+    expense.description = description;
+    expense.category = category;
+    await expense.save();
 
-      db.query(updateExpenseQuery, [amount, description, category, id], (updateErr) => {
-        if (updateErr) {
-          return db.rollback(() => {
-            res.status(500).json({ error: 'Failed to update expense' });
-          });
-        }
+    await User.findByIdAndUpdate(expense.userId, { $inc: { totalExpense: amountDifference } });
 
-        db.query(getTotalExpenseQuery, [userId], (sumErr, sumResult) => {
-          if (sumErr) {
-            return db.rollback(() => {
-              res.status(500).json({ error: 'Failed to calculate total expense' });
-            });
-          }
-
-          const totalExpense = sumResult[0].total;
-
-          db.query(updateUserTotalExpenseQuery, [totalExpense, userId], (updateUserErr) => {
-            if (updateUserErr) {
-              return db.rollback(() => {
-                res.status(500).json({ error: 'Failed to update user total expense' });
-              });
-            }
-
-            db.commit((commitErr) => {
-              if (commitErr) {
-                return db.rollback(() => {
-                  res.status(500).json({ error: 'Transaction commit failed' });
-                });
-              }
-
-              res.json({ id, amount, description, category, totalExpense });
-            });
-          });
-        });
-      });
-    });
-  });
+    res.json(expense);
+  } catch (err) {
+    console.error('Error updating expense:', err);
+    res.status(500).json({ error: 'Failed to update expense' });
+  }
 };
 
-
-
-exports.deleteExpense = (req, res) => {
+exports.deleteExpense = async (req, res) => {
   const { id } = req.params;
-  const getExpenseSql = 'SELECT user_id, amount FROM expenses WHERE id = ?';
-  db.query(getExpenseSql, [id], (err, results) => {
-    if (err) return res.status(500).json({ error: 'Database error' });
 
-    if (results.length === 0) return res.status(404).json({ message: 'Expense not found' });
+  try {
+    const expense = await Expense.findById(id);
+    if (!expense) {
+      return res.status(404).json({ error: 'Expense not found' });
+    }
 
-    const { user_id, amount } = results[0];
-    const deleteExpenseSql = 'DELETE FROM expenses WHERE id = ?';
-    db.query(deleteExpenseSql, [id], (err) => {
-      if (err) return res.status(500).json({ error: 'Failed to delete expense' });
+    await User.findByIdAndUpdate(expense.userId, { $inc: { totalExpense: -expense.amount } });
+    await Expense.findByIdAndDelete(id);
 
-      // Update the totalExpense column in the users table
-      const updateTotalExpenseSql = 'UPDATE users SET totalExpense = totalExpense - ? WHERE id = ?';
-      db.query(updateTotalExpenseSql, [amount, user_id], (err) => {
-        if (err) {
-          // Rollback: Restore the expense if updating totalExpense fails
-          const restoreExpenseSql = 'INSERT INTO expenses (id, user_id, amount) VALUES (?, ?, ?)';
-          db.query(restoreExpenseSql, [id, user_id, amount], (restoreErr) => {
-            if (restoreErr) return res.status(500).json({ error: 'Database rollback error' });
-
-            return res.status(500).json({ error: 'Failed to update total expense, rolled back changes' });
-          });
-        } else {
-          res.json({ message: 'Expense deleted and totalExpense updated' });
-        }
-      });
-    });
-  });
-};
-
-
-
-
-
-/* 
-exports.deleteExpense = (req, res) => {
-  const { id } = req.params;
-  const sql = 'DELETE FROM expenses WHERE id = ?';
-  db.query(sql, [id], (err) => {
-    if (err) throw err;
     res.json({ message: 'Expense deleted' });
-  });
-}; */
+  } catch (err) {
+    console.error('Error deleting expense:', err);
+    res.status(500).json({ error: 'Failed to delete expense' });
+  }
+};
