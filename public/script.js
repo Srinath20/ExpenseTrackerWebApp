@@ -71,7 +71,7 @@ async function checkPremium() {
                         leaderBoardDiv.innerHTML = '';
                         data.forEach(item => {
                             const div = document.createElement('div');
-                            div.textContent = `Name - ${item.name} -- Total Expenses -- ${item.totalexpense}`;
+                            div.textContent = `Name - ${item.name} -- Total Expenses -- ${item.totalExpense}`;
                             leaderBoardDiv.appendChild(div);
                         });
                     })
@@ -203,7 +203,7 @@ function displayExpense(expense) {
     const expensesList = document.getElementById('expensesList');
     const li = document.createElement('li');
     li.classList.add('expense');
-    li.dataset.id = expense.id;
+    li.dataset.id = expense._id;
     li.innerHTML = `
         <span>${expense.description} - ${expense.amount} (${expense.category})</span>
         <button onclick="editExpense(this)">Edit</button>

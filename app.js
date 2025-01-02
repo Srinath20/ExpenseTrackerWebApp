@@ -132,6 +132,8 @@ app.get('/api/expenses/api/leaderboard', async (req, res) => {
       .limit(10)
       .lean();
 
+    console.log('Users fetched:', users);
+
     res.json(users);
   } catch (err) {
     console.error('Error fetching leaderboard:', err);
@@ -139,27 +141,26 @@ app.get('/api/expenses/api/leaderboard', async (req, res) => {
   }
 });
 
-
-// ... (password reset routes remain largely the same)
 app.post('/api/expenses/password/forgotpassword', async (req, res) => {
   const { email } = req.body;
+
   if (!email) {
-    return res.status(400).json({ error: 'Email is required' });
+    return res.status(400).send('Email is required');
   }
 
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'User with the provided email does not exist' });
     }
-
-    const requestId = uuidv4();
-    const resetUrl = `${apiUrl}/password/resetpassword/${requestId}`;
-
-    const forgotPasswordRequest = new ForgotPasswordRequest({
+    const request = new ForgotPasswordRequest({
       userId: user._id,
+      requestId: uuidv4(),
     });
-    await forgotPasswordRequest.save();
+
+    await request.save();
+
+    const resetUrl = `http://localhost:3000/password/resetpassword/${request.requestId}`;
 
     const apiInstance = new Sib.TransactionalEmailsApi();
     const sender = {
@@ -169,8 +170,9 @@ app.post('/api/expenses/password/forgotpassword', async (req, res) => {
     const receivers = [
       { email: email }
     ];
-    const htmlContent = `<p>You requested a password reset. Click the link to reset your password: <a href="${resetUrl}">${resetUrl}</a></p>`;
-    const textContent = `You requested a password reset. Click the link to reset your password: ${resetUrl}`;
+    const htmlContent = `<p>You requested a password reset. Click the link below to reset your password:</p>
+                         <p><a href="${resetUrl}">${resetUrl}</a></p>`;
+    const textContent = `You requested a password reset. Click the link below to reset your password: ${resetUrl}`;
 
     try {
       const sendEmail = await apiInstance.sendTransacEmail({
@@ -182,12 +184,12 @@ app.post('/api/expenses/password/forgotpassword', async (req, res) => {
       });
       console.log('Email sent successfully:', sendEmail);
       return res.status(200).json({ message: 'Password reset link sent to your email.' });
-    } catch (error) {
-      console.error('Error sending email:', error);
+    } catch (emailError) {
+      console.error('Error sending email:', emailError);
       return res.status(500).json({ error: 'Failed to send email' });
     }
   } catch (err) {
-    console.error('Error finding user:', err);
+    console.error('Error handling forgot password request:', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -196,7 +198,7 @@ app.get('/password/resetpassword/:requestId', async (req, res) => {
   const { requestId } = req.params;
 
   try {
-    const request = await forgotPasswordRequest.findOne({ _id: requestId, isActive: true });
+    const request = await ForgotPasswordRequest.findOne({ requestId, isActive: true });
     if (!request) {
       return res.status(404).send('Invalid or expired reset link');
     }
@@ -221,7 +223,7 @@ app.post('/password/resetpassword/:requestId', async (req, res) => {
   }
 
   try {
-    const request = await forgotPasswordRequest.findOne({ _id: requestId, isActive: true });
+    const request = await ForgotPasswordRequest.findOne({ requestId, isActive: true });
     if (!request) {
       return res.status(404).send('Invalid or expired reset link');
     }
@@ -232,7 +234,7 @@ app.post('/password/resetpassword/:requestId', async (req, res) => {
 
     await User.findByIdAndUpdate(userId, { password: hashedPassword });
 
-    await forgotPasswordRequest.findByIdAndUpdate(requestId, { isActive: false });
+    await ForgotPasswordRequest.findByIdAndUpdate(request._id, { isActive: false });
 
     res.send('Password has been reset successfully');
   } catch (err) {
@@ -255,7 +257,6 @@ app.post('/api/expenses/checkPremium', async (req, res) => {
 });
 
 app.post('/api/expenses/purchase/premium', async (req, res) => {
-  console.log(process.env.SERVER_url);
   try {
     const sess = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],

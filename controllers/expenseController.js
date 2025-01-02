@@ -36,13 +36,18 @@ exports.createExpense = async (req, res) => {
 
 exports.updateExpense = async (req, res) => {
   const { id } = req.params;
-  const { amount, description, category } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Expense ID is required' });
+  }
 
   try {
     const expense = await Expense.findById(id);
     if (!expense) {
       return res.status(404).json({ error: 'Expense not found' });
     }
+
+    const { amount, description, category } = req.body;
 
     const amountDifference = amount - expense.amount;
 
